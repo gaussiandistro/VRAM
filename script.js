@@ -8,7 +8,7 @@
    CONFIGURATION
    ============================================================ */
 
-   const SCHOOL_END_TIME = "14:30";
+   
 
 
    /*
@@ -45,6 +45,19 @@
         "2026-08-26" : "White",
         "2026-08-27" : "Blue",
         "2026-08-28" : "White",
+      
+        "2026-09-08" : "Blue",
+        "2026-09-09" : "White",
+        "2026-09-10" : "Blue",
+        "2026-09-11" : "White",
+
+        "2026-10-16": "ER White",
+        "2026-10-22": "ER White",
+
+        "2026-10-19" : "Blue",
+        "2026-10-20" : "White",
+        "2026-10-21" : "Blue",
+      
      // Examples:
      // "2026-08-24": "Blue",
      // "2026-08-25": "White",
@@ -63,7 +76,7 @@
    */
    
    const NO_SCHOOL_DATES = new Set([
-   
+      "2026-09-07",
      // Examples:
      // "2026-09-07",
      // "2026-11-26",
@@ -307,7 +320,41 @@
          end: "14:30"
        }
    
-     ]
+     ],
+
+
+   "ER White": [
+    {
+      id: "p2",
+      name: "2nd Period",
+      start: "07:30",
+      end: "08:40"
+    },
+    {
+      id: "p4",
+      name: "4th Period",
+      start: "08:40",
+      end: "09:45"
+    },
+    {
+      id: "p6",
+      name: "6th Period",
+      start: "09:45",
+      end: "10:45"
+    },
+    {
+      id: "passing1",
+      name: "Passing Period",
+      start: "10:45",
+      end: "10:50"
+    },
+    {
+      id: "p8",
+      name: "8th Period",
+      start: "10:50",
+      end: "12:00"
+    }
+  ]
    
    };
    
@@ -617,8 +664,34 @@
      const todayType =
        getDayType(now);
    
-     const end =
-       timeToDate(SCHOOL_END_TIME, now);
+
+
+     function getDisplayDayInfo() {
+  const now = new Date();
+  const todayType = getDayType(now);
+
+  if (todayType) {
+    const schedule = SCHEDULES[todayType];
+    const lastPeriod = schedule[schedule.length - 1];
+    const end = timeToDate(lastPeriod.end, now);
+
+    if (now < end) {
+      return {
+        date: now,
+        type: todayType,
+        relation: "today"
+      };
+    }
+  }
+
+  const next = getNextSchoolDay(now);
+
+  return {
+    date: next,
+    type: getDayType(next),
+    relation: "next"
+  };
+}
    
    
      if (
@@ -1002,8 +1075,13 @@
      const now =
        new Date();
    
-     const lunches =
-       LUNCHES[dayType];
+     const lunches = LUNCHES[dayType] || [];
+
+
+      if (!lunches) {
+  lunchSection.classList.add("hidden");
+  return;
+}
    
    
      lunches.forEach(lunch => {
