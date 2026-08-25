@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>RamWatch</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <main class="container">
+
+    <!-- Day type -->
+    <section class="day-section">
+      <h1 id="dayMessage">
+        Loading schedule...
+      </h1>
+    </section>
+
+    <!-- Current period -->
+    <section class="tracker">
+
+      <div id="currentPeriod" class="current-period">
+        --
+      </div>
+
+      <div id="countdown" class="countdown">
+        --:--:--
+      </div>
+
+      <div class="progress-wrapper">
+        <div id="progressRing" class="progress-ring">
+          <div class="progress-inner">
+            <span id="progressPercent">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="periodTimes" class="period-times">
+        --
+      </div>
+
+    </section>
+
+    <!-- Lunch -->
+    <section id="lunchSection" class="lunch-section hidden">
+
+      <h2>Lunch</h2>
+
+      <div class="lunch-grid">
+
+        <div class="lunch-card">
+          <div class="lunch-title">A Lunch</div>
+          <div id="lunchATimer" class="lunch-timer">--:--</div>
+          <div id="lunchAStatus" class="lunch-status"></div>
+        </div>
+
+        <div class="lunch-card">
+          <div class="lunch-title">B Lunch</div>
+          <div id="lunchBTimer" class="lunch-timer">--:--</div>
+          <div id="lunchBStatus" class="lunch-status"></div>
+        </div>
+
+        <div class="lunch-card">
+          <div class="lunch-title">C Lunch</div>
+          <div id="lunchCTimer" class="lunch-timer">--:--</div>
+          <div id="lunchCStatus" class="lunch-status"></div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Full schedule -->
+    <section class="schedule-section">
+
+      <button id="scheduleToggle" class="schedule-button">
+        Show Schedule
+      </button>
+
+      <div id="schedulePanel" class="schedule-panel hidden">
+
+        <div class="schedule-header">
+
+          <h2 id="scheduleTitle">
+            Schedule
+          </h2>
+
+          <select id="daySelector">
+            <option value="auto">Auto</option>
+            <option value="Blue">Blue Day</option>
+            <option value="White">White Day</option>
+            <option value="RAM">RAM Day</option>
+          </select>
+
+        </div>
+
+        <div id="scheduleList"></div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
