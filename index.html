@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="View today's LHWHS schedule, current period, and lunch countdowns."
+  >
 
   <title>VRAM (LHWHS Schedule Tracker)</title>
 
@@ -14,7 +18,6 @@
   >
 
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/jpeg" href="/ram.jpg">
 </head>
 
 <body>
@@ -40,7 +43,15 @@
       </div>
 
       <div class="progress-wrapper">
-        <div id="progressRing" class="progress-ring">
+        <div
+          id="progressRing"
+          class="progress-ring"
+          role="progressbar"
+          aria-label="Current period progress"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
           <div class="progress-inner">
             <span id="progressPercent">0%</span>
           </div>
@@ -85,7 +96,13 @@
     <!-- Full schedule -->
     <section class="schedule-section">
 
-      <button id="scheduleToggle" class="schedule-button">
+      <button
+        id="scheduleToggle"
+        class="schedule-button"
+        type="button"
+        aria-controls="schedulePanel"
+        aria-expanded="false"
+      >
         Show Schedule
       </button>
 
@@ -97,7 +114,8 @@
             Schedule
           </h2>
 
-          <select id="daySelector">
+          <label class="visually-hidden" for="daySelector">Schedule day</label>
+          <select id="daySelector" aria-label="Schedule day">
             <option value="auto">Auto</option>
             <option value="Blue">Blue Day</option>
             <option value="White">White Day</option>
