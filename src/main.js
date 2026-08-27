@@ -1,9 +1,11 @@
+import "./style.css";
+
 const WEEK_PATTERN = {
   1: "Blue",
   2: "White",
   3: "RAM",
   4: "Blue",
-  5: "White"
+  5: "White",
 };
 
 //(YYYY-MM-DD)
@@ -28,7 +30,7 @@ const DAY_EXCEPTIONS = {
   "2026-11-23": "Blue",
   "2026-11-24": "White",
   "2026-12-16": "Blue",
-  "2026-12-17": "White"
+  "2026-12-17": "White",
 };
 
 //(YYYY-MM-DD)
@@ -37,7 +39,7 @@ const NO_SCHOOL_DATES = new Set([
   "2026-11-03",
   "2026-11-25",
   "2026-11-26",
-  "2026-11-27"
+  "2026-11-27",
 ]);
 
 function secondsFromTime(time) {
@@ -52,7 +54,7 @@ function timeBlock(id, name, start, end) {
     start,
     end,
     startSeconds: secondsFromTime(start),
-    endSeconds: secondsFromTime(end)
+    endSeconds: secondsFromTime(end),
   };
 }
 
@@ -68,7 +70,7 @@ const SCHEDULES = {
     timeBlock("passing4", "Passing Period", "10:40", "10:45"),
     timeBlock("p5", "5th Period", "10:45", "12:55"),
     timeBlock("passing5", "Passing Period", "12:55", "13:00"),
-    timeBlock("p7", "7th Period", "13:00", "14:30")
+    timeBlock("p7", "7th Period", "13:00", "14:30"),
   ],
   White: [
     timeBlock("p2", "2nd Period", "07:30", "09:00"),
@@ -77,7 +79,7 @@ const SCHEDULES = {
     timeBlock("passing2", "Passing Period", "10:40", "10:45"),
     timeBlock("p6", "6th Period", "10:45", "12:55"),
     timeBlock("passing3", "Passing Period", "12:55", "13:00"),
-    timeBlock("p8", "8th Period", "13:00", "14:30")
+    timeBlock("p8", "8th Period", "13:00", "14:30"),
   ],
   RAM: [
     timeBlock("p1", "1st Period", "07:30", "08:20"),
@@ -92,68 +94,68 @@ const SCHEDULES = {
     timeBlock("passing5", "Passing Period", "12:40", "12:45"),
     timeBlock("p7", "7th Period", "12:45", "13:35"),
     timeBlock("passing6", "Passing Period", "13:35", "13:40"),
-    timeBlock("p8", "8th Period", "13:40", "14:30")
+    timeBlock("p8", "8th Period", "13:40", "14:30"),
   ],
   "ER White": [
     timeBlock("p2", "2nd Period", "07:30", "08:40"),
     timeBlock("p4", "4th Period", "08:40", "09:45"),
     timeBlock("p6", "6th Period", "09:45", "10:45"),
     timeBlock("passing1", "Passing Period", "10:45", "10:50"),
-    timeBlock("p8", "8th Period", "10:50", "12:00")
-  ]
+    timeBlock("p8", "8th Period", "10:50", "12:00"),
+  ],
 };
 
 const LUNCHES = {
   Blue: [
     timeBlock("A", "A Lunch", "10:45", "11:15"),
     timeBlock("B", "B Lunch", "11:35", "12:05"),
-    timeBlock("C", "C Lunch", "12:25", "12:55")
+    timeBlock("C", "C Lunch", "12:25", "12:55"),
   ],
   White: [
     timeBlock("A", "A Lunch", "10:45", "11:15"),
     timeBlock("B", "B Lunch", "11:35", "12:05"),
-    timeBlock("C", "C Lunch", "12:25", "12:55")
+    timeBlock("C", "C Lunch", "12:25", "12:55"),
   ],
   RAM: [
     timeBlock("A", "A Lunch", "11:10", "11:35"),
     timeBlock("B", "B Lunch", "11:40", "12:10"),
-    timeBlock("C", "C Lunch", "12:15", "12:40")
-  ]
+    timeBlock("C", "C Lunch", "12:15", "12:40"),
+  ],
 };
 
 const LUNCH_HOST_PERIOD = {
   Blue: "p5",
   White: "p6",
-  RAM: "p6"
+  RAM: "p6",
 };
 
 const DAY_CLASS = {
   Blue: "day-blue",
   White: "day-white",
   RAM: "day-ram",
-  "ER White": "day-white"
+  "ER White": "day-white",
 };
 
 const SCHOOL_END_SECONDS = Object.fromEntries(
   Object.entries(SCHEDULES).map(([dayType, schedule]) => [
     dayType,
-    schedule[schedule.length - 1].endSeconds
+    schedule[schedule.length - 1].endSeconds,
   ])
 );
 
 const DISPLAY_SCHEDULES = Object.fromEntries(
-  Object.keys(SCHEDULES).map(dayType => [
+  Object.keys(SCHEDULES).map((dayType) => [
     dayType,
     [
-      ...SCHEDULES[dayType].map(item => ({ ...item, isLunch: false })),
-      ...(LUNCHES[dayType] || []).map(item => ({ ...item, isLunch: true }))
-    ].sort((a, b) => a.startSeconds - b.startSeconds)
+      ...SCHEDULES[dayType].map((item) => ({ ...item, isLunch: false })),
+      ...(LUNCHES[dayType] || []).map((item) => ({ ...item, isLunch: true })),
+    ].sort((a, b) => a.startSeconds - b.startSeconds),
   ])
 );
 
 /* DOM */
 
-const byId = id => document.getElementById(id);
+const byId = (id) => document.getElementById(id);
 
 const elements = {
   dayMessage: byId("dayMessage"),
@@ -171,8 +173,8 @@ const elements = {
   lunches: {
     A: { timer: byId("lunchATimer"), status: byId("lunchAStatus") },
     B: { timer: byId("lunchBTimer"), status: byId("lunchBStatus") },
-    C: { timer: byId("lunchCTimer"), status: byId("lunchCStatus") }
-  }
+    C: { timer: byId("lunchCTimer"), status: byId("lunchCStatus") },
+  },
 };
 
 function setText(element, text) {
@@ -196,10 +198,10 @@ function dateKey(date) {
 
 function secondsIntoDay(date) {
   return (
-    date.getHours() * 3600
-    + date.getMinutes() * 60
-    + date.getSeconds()
-    + date.getMilliseconds() / 1000
+    date.getHours() * 3600 +
+    date.getMinutes() * 60 +
+    date.getSeconds() +
+    date.getMilliseconds() / 1000
   );
 }
 
@@ -216,7 +218,7 @@ function formatDuration(seconds) {
   const remainingSeconds = totalSeconds % 60;
 
   return [hours, minutes, remainingSeconds]
-    .map(value => String(value).padStart(2, "0"))
+    .map((value) => String(value).padStart(2, "0"))
     .join(":");
 }
 
@@ -264,13 +266,15 @@ function getDisplayDayInfo(now) {
 /*  Period logic  */
 
 function getCurrentPeriod(dayType, nowSeconds) {
-  return SCHEDULES[dayType]?.find(
-    period => nowSeconds >= period.startSeconds && nowSeconds < period.endSeconds
-  ) || null;
+  return (
+    SCHEDULES[dayType]?.find(
+      (period) => nowSeconds >= period.startSeconds && nowSeconds < period.endSeconds
+    ) || null
+  );
 }
 
 function getNextPeriod(dayType, nowSeconds) {
-  return SCHEDULES[dayType]?.find(period => period.startSeconds > nowSeconds) || null;
+  return SCHEDULES[dayType]?.find((period) => period.startSeconds > nowSeconds) || null;
 }
 
 /*  Renders  */
@@ -308,11 +312,7 @@ function renderDayMessage(now) {
   }
 
   const weekday = info.date.toLocaleDateString("en-US", { weekday: "long" });
-  elements.dayMessage.replaceChildren(
-    `${weekday} will be ${article} `,
-    dayType,
-    " Day."
-  );
+  elements.dayMessage.replaceChildren(`${weekday} will be ${article} `, dayType, " Day.");
 }
 
 function setProgress(progress) {
@@ -409,10 +409,7 @@ function updateMainTracker(now) {
 
   setText(elements.currentPeriod, current.name);
   setText(elements.countdown, formatDuration(current.endSeconds - nowSeconds));
-  setText(
-    elements.periodTimes,
-    `${formatTime12(current.start)} – ${formatTime12(current.end)}`
-  );
+  setText(elements.periodTimes, `${formatTime12(current.start)} – ${formatTime12(current.end)}`);
   setProgress(elapsed / totalTime);
   updateLunch(todayType, current, nowSeconds);
 }
@@ -424,9 +421,8 @@ function selectedScheduleType(now) {
 }
 
 function updateScheduleHighlight(dayType, now) {
-  const currentId = getDayType(now) === dayType
-    ? getCurrentPeriod(dayType, secondsIntoDay(now))?.id
-    : undefined;
+  const currentId =
+    getDayType(now) === dayType ? getCurrentPeriod(dayType, secondsIntoDay(now))?.id : undefined;
 
   if (currentId === highlightedPeriodId) {
     return;

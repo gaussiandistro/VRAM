@@ -1,140 +1,113 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta
-    name="description"
-    content="View today's LHWHS schedule, current period, and lunch countdowns."
-  >
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="View today's LHWHS schedule, current period, and lunch countdowns."
+    />
 
-  <title>VRAM (LHWHS Schedule Tracker)</title>
+    <title>VRAM (LHWHS Schedule Tracker)</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap"
-    rel="stylesheet"
-  >
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
 
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/jpeg" href="/ram.jpg">
+    <link rel="icon" type="image/jpeg" href="/ram.jpg" />
+  </head>
 
-</head>
+  <body>
+    <main class="container">
+      <!-- Day type -->
+      <section class="day-section">
+        <h1 id="dayMessage">Loading schedule...</h1>
+      </section>
 
-<body>
+      <!-- Current period -->
+      <section class="tracker">
+        <div id="currentPeriod" class="current-period">--</div>
 
-  <main class="container">
+        <div id="countdown" class="countdown">--:--:--</div>
 
-    <!-- Day type -->
-    <section class="day-section">
-      <h1 id="dayMessage">
-        Loading schedule...
-      </h1>
-    </section>
-
-    <!-- Current period -->
-    <section class="tracker">
-
-      <div id="currentPeriod" class="current-period">
-        --
-      </div>
-
-      <div id="countdown" class="countdown">
-        --:--:--
-      </div>
-
-      <div class="progress-wrapper">
-        <div
-          id="progressRing"
-          class="progress-ring"
-          role="progressbar"
-          aria-label="Current period progress"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-valuenow="0"
-        >
-          <div class="progress-inner">
-            <span id="progressPercent">0%</span>
+        <div class="progress-wrapper">
+          <div
+            id="progressRing"
+            class="progress-ring"
+            role="progressbar"
+            aria-label="Current period progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div class="progress-inner">
+              <span id="progressPercent">0%</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div id="periodTimes" class="period-times">
-        --
-      </div>
+        <div id="periodTimes" class="period-times">--</div>
+      </section>
 
-    </section>
+      <!-- Lunch -->
+      <section id="lunchSection" class="lunch-section hidden">
+        <h2>Lunch</h2>
 
-    <!-- Lunch -->
-    <section id="lunchSection" class="lunch-section hidden">
+        <div class="lunch-grid">
+          <div class="lunch-card">
+            <div class="lunch-title">A Lunch</div>
+            <div id="lunchATimer" class="lunch-timer">--:--</div>
+            <div id="lunchAStatus" class="lunch-status"></div>
+          </div>
 
-      <h2>Lunch</h2>
+          <div class="lunch-card">
+            <div class="lunch-title">B Lunch</div>
+            <div id="lunchBTimer" class="lunch-timer">--:--</div>
+            <div id="lunchBStatus" class="lunch-status"></div>
+          </div>
 
-      <div class="lunch-grid">
-
-        <div class="lunch-card">
-          <div class="lunch-title">A Lunch</div>
-          <div id="lunchATimer" class="lunch-timer">--:--</div>
-          <div id="lunchAStatus" class="lunch-status"></div>
+          <div class="lunch-card">
+            <div class="lunch-title">C Lunch</div>
+            <div id="lunchCTimer" class="lunch-timer">--:--</div>
+            <div id="lunchCStatus" class="lunch-status"></div>
+          </div>
         </div>
+      </section>
 
-        <div class="lunch-card">
-          <div class="lunch-title">B Lunch</div>
-          <div id="lunchBTimer" class="lunch-timer">--:--</div>
-          <div id="lunchBStatus" class="lunch-status"></div>
+      <!-- Full schedule -->
+      <section class="schedule-section">
+        <button
+          id="scheduleToggle"
+          class="schedule-button"
+          type="button"
+          aria-controls="schedulePanel"
+          aria-expanded="false"
+        >
+          Show Schedule
+        </button>
+
+        <div id="schedulePanel" class="schedule-panel hidden">
+          <div class="schedule-header">
+            <h2 id="scheduleTitle">Schedule</h2>
+
+            <label class="visually-hidden" for="daySelector">Schedule day</label>
+            <select id="daySelector" aria-label="Schedule day">
+              <option value="auto">Auto</option>
+              <option value="Blue">Blue Day</option>
+              <option value="White">White Day</option>
+              <option value="RAM">RAM Day</option>
+              <option value="ER White">ER White Day</option>
+            </select>
+          </div>
+
+          <div id="scheduleList"></div>
         </div>
+      </section>
+    </main>
 
-        <div class="lunch-card">
-          <div class="lunch-title">C Lunch</div>
-          <div id="lunchCTimer" class="lunch-timer">--:--</div>
-          <div id="lunchCStatus" class="lunch-status"></div>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- Full schedule -->
-    <section class="schedule-section">
-
-      <button
-        id="scheduleToggle"
-        class="schedule-button"
-        type="button"
-        aria-controls="schedulePanel"
-        aria-expanded="false"
-      >
-        Show Schedule
-      </button>
-
-      <div id="schedulePanel" class="schedule-panel hidden">
-
-        <div class="schedule-header">
-
-          <h2 id="scheduleTitle">
-            Schedule
-          </h2>
-
-          <label class="visually-hidden" for="daySelector">Schedule day</label>
-          <select id="daySelector" aria-label="Schedule day">
-            <option value="auto">Auto</option>
-            <option value="Blue">Blue Day</option>
-            <option value="White">White Day</option>
-            <option value="RAM">RAM Day</option>
-            <option value="ER White">ER White Day</option>
-          </select>
-
-        </div>
-
-        <div id="scheduleList"></div>
-
-      </div>
-
-    </section>
-
-  </main>
-
-  <script src="script.js"></script>
-</body>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
