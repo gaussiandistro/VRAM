@@ -1,22 +1,6 @@
-/* ============================================================
-   RAMWATCH
-   Simple standalone school schedule tracker
-   ============================================================ */
+/* RamWatch: standalone school schedule tracker */
 
-
-/* ============================================================
-   CONFIGURATION
-   ============================================================ */
-
-/*
-  Regular weekly pattern:
-
-  Monday    = Blue
-  Tuesday   = White
-  Wednesday = RAM
-  Thursday  = Blue
-  Friday    = White
-*/
+/* ----------------------------- Configuration ----------------------------- */
 
 const WEEK_PATTERN = {
   1: "Blue",
@@ -26,52 +10,32 @@ const WEEK_PATTERN = {
   5: "White"
 };
 
-
-/*
-  Individual dates that do not follow the normal pattern.
-
-  Format:
-  "YYYY-MM-DD": "Blue"
-  "YYYY-MM-DD": "White"
-  "YYYY-MM-DD": "RAM"
-  "YYYY-MM-DD": "ER White"
-*/
-
+// Dates that do not follow the weekly pattern (YYYY-MM-DD).
 const DAY_EXCEPTIONS = {
   "2026-08-25": "Blue",
   "2026-08-26": "White",
   "2026-08-27": "Blue",
   "2026-08-28": "White",
-
   "2026-09-08": "Blue",
   "2026-09-09": "White",
   "2026-09-10": "Blue",
   "2026-09-11": "White",
-
   "2026-10-16": "ER White",
-  "2026-10-22": "ER White",
-
   "2026-10-19": "Blue",
   "2026-10-20": "White",
   "2026-10-21": "Blue",
-
+  "2026-10-22": "ER White",
   "2026-11-02": "Blue",
   "2026-11-04": "White",
-   "2026-11-05": "Blue",
-   "2026-11-06": "White",
-
-   "2026-11-23": "Blue",
-   "2026-11-24": "White",
-
-   "2026-12-16": "Blue",
-   "2026-12-17": "White"
+  "2026-11-05": "Blue",
+  "2026-11-06": "White",
+  "2026-11-23": "Blue",
+  "2026-11-24": "White",
+  "2026-12-16": "Blue",
+  "2026-12-17": "White"
 };
 
-
-/*
-  Dates where there is no school.
-*/
-
+// Dates with no school (YYYY-MM-DD).
 const NO_SCHOOL_DATES = new Set([
   "2026-09-07",
   "2026-11-03",
@@ -80,1076 +44,509 @@ const NO_SCHOOL_DATES = new Set([
   "2026-11-27"
 ]);
 
+function secondsFromTime(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return (hours * 60 + minutes) * 60;
+}
 
-/* ============================================================
-   SCHEDULE DATA
-   ============================================================ */
+function timeBlock(id, name, start, end) {
+  return {
+    id,
+    name,
+    start,
+    end,
+    startSeconds: secondsFromTime(start),
+    endSeconds: secondsFromTime(end)
+  };
+}
 
 const SCHEDULES = {
-
   Blue: [
-    {
-      id: "p1",
-      name: "1st Period",
-      start: "07:30",
-      end: "09:00"
-    },
-    {
-      id: "passing1",
-      name: "Passing Period",
-      start: "09:00",
-      end: "09:05"
-    },
-    {
-      id: "home",
-      name: "Home Lab",
-      start: "09:05",
-      end: "09:25"
-    },
-    {
-      id: "passing2",
-      name: "Passing Period",
-      start: "09:25",
-      end: "09:30"
-    },
-    {
-      id: "seminar1",
-      name: "Seminar L1",
-      start: "09:30",
-      end: "09:50"
-    },
-    {
-      id: "passing3",
-      name: "Passing Period",
-      start: "09:50",
-      end: "09:55"
-    },
-    {
-      id: "seminar2",
-      name: "Seminar L2",
-      start: "09:55",
-      end: "10:40"
-    },
-    {
-      id: "passing4",
-      name: "Passing Period",
-      start: "10:40",
-      end: "10:45"
-    },
-    {
-      id: "p5",
-      name: "5th Period",
-      start: "10:45",
-      end: "12:55"
-    },
-    {
-      id: "passing5",
-      name: "Passing Period",
-      start: "12:55",
-      end: "13:00"
-    },
-    {
-      id: "p7",
-      name: "7th Period",
-      start: "13:00",
-      end: "14:30"
-    }
+    timeBlock("p1", "1st Period", "07:30", "09:00"),
+    timeBlock("passing1", "Passing Period", "09:00", "09:05"),
+    timeBlock("home", "Home Lab", "09:05", "09:25"),
+    timeBlock("passing2", "Passing Period", "09:25", "09:30"),
+    timeBlock("seminar1", "Seminar L1", "09:30", "09:50"),
+    timeBlock("passing3", "Passing Period", "09:50", "09:55"),
+    timeBlock("seminar2", "Seminar L2", "09:55", "10:40"),
+    timeBlock("passing4", "Passing Period", "10:40", "10:45"),
+    timeBlock("p5", "5th Period", "10:45", "12:55"),
+    timeBlock("passing5", "Passing Period", "12:55", "13:00"),
+    timeBlock("p7", "7th Period", "13:00", "14:30")
   ],
-
-
   White: [
-    {
-      id: "p2",
-      name: "2nd Period",
-      start: "07:30",
-      end: "09:00"
-    },
-    {
-      id: "passing1",
-      name: "Passing Period",
-      start: "09:00",
-      end: "09:05"
-    },
-    {
-      id: "p4",
-      name: "4th Period",
-      start: "09:05",
-      end: "10:40"
-    },
-    {
-      id: "passing2",
-      name: "Passing Period",
-      start: "10:40",
-      end: "10:45"
-    },
-    {
-      id: "p6",
-      name: "6th Period",
-      start: "10:45",
-      end: "12:55"
-    },
-    {
-      id: "passing3",
-      name: "Passing Period",
-      start: "12:55",
-      end: "13:00"
-    },
-    {
-      id: "p8",
-      name: "8th Period",
-      start: "13:00",
-      end: "14:30"
-    }
+    timeBlock("p2", "2nd Period", "07:30", "09:00"),
+    timeBlock("passing1", "Passing Period", "09:00", "09:05"),
+    timeBlock("p4", "4th Period", "09:05", "10:40"),
+    timeBlock("passing2", "Passing Period", "10:40", "10:45"),
+    timeBlock("p6", "6th Period", "10:45", "12:55"),
+    timeBlock("passing3", "Passing Period", "12:55", "13:00"),
+    timeBlock("p8", "8th Period", "13:00", "14:30")
   ],
-
-
   RAM: [
-    {
-      id: "p1",
-      name: "1st Period",
-      start: "07:30",
-      end: "08:20"
-    },
-    {
-      id: "passing1",
-      name: "Passing Period",
-      start: "08:20",
-      end: "08:25"
-    },
-    {
-      id: "p2",
-      name: "2nd Period",
-      start: "08:25",
-      end: "09:15"
-    },
-    {
-      id: "passing2",
-      name: "Passing Period",
-      start: "09:15",
-      end: "09:20"
-    },
-    {
-      id: "p4",
-      name: "4th Period",
-      start: "09:20",
-      end: "10:10"
-    },
-    {
-      id: "passing3",
-      name: "Passing Period",
-      start: "10:10",
-      end: "10:15"
-    },
-    {
-      id: "p5",
-      name: "5th Period",
-      start: "10:15",
-      end: "11:05"
-    },
-    {
-      id: "passing4",
-      name: "Passing Period",
-      start: "11:05",
-      end: "11:10"
-    },
-    {
-      id: "p6",
-      name: "6th Period",
-      start: "11:10",
-      end: "12:40"
-    },
-    {
-      id: "passing5",
-      name: "Passing Period",
-      start: "12:40",
-      end: "12:45"
-    },
-    {
-      id: "p7",
-      name: "7th Period",
-      start: "12:45",
-      end: "13:35"
-    },
-    {
-      id: "passing6",
-      name: "Passing Period",
-      start: "13:35",
-      end: "13:40"
-    },
-    {
-      id: "p8",
-      name: "8th Period",
-      start: "13:40",
-      end: "14:30"
-    }
+    timeBlock("p1", "1st Period", "07:30", "08:20"),
+    timeBlock("passing1", "Passing Period", "08:20", "08:25"),
+    timeBlock("p2", "2nd Period", "08:25", "09:15"),
+    timeBlock("passing2", "Passing Period", "09:15", "09:20"),
+    timeBlock("p4", "4th Period", "09:20", "10:10"),
+    timeBlock("passing3", "Passing Period", "10:10", "10:15"),
+    timeBlock("p5", "5th Period", "10:15", "11:05"),
+    timeBlock("passing4", "Passing Period", "11:05", "11:10"),
+    timeBlock("p6", "6th Period", "11:10", "12:40"),
+    timeBlock("passing5", "Passing Period", "12:40", "12:45"),
+    timeBlock("p7", "7th Period", "12:45", "13:35"),
+    timeBlock("passing6", "Passing Period", "13:35", "13:40"),
+    timeBlock("p8", "8th Period", "13:40", "14:30")
   ],
-
-
   "ER White": [
-    {
-      id: "p2",
-      name: "2nd Period",
-      start: "07:30",
-      end: "08:40"
-    },
-    {
-      id: "p4",
-      name: "4th Period",
-      start: "08:40",
-      end: "09:45"
-    },
-    {
-      id: "p6",
-      name: "6th Period",
-      start: "09:45",
-      end: "10:45"
-    },
-    {
-      id: "passing1",
-      name: "Passing Period",
-      start: "10:45",
-      end: "10:50"
-    },
-    {
-      id: "p8",
-      name: "8th Period",
-      start: "10:50",
-      end: "12:00"
-    }
+    timeBlock("p2", "2nd Period", "07:30", "08:40"),
+    timeBlock("p4", "4th Period", "08:40", "09:45"),
+    timeBlock("p6", "6th Period", "09:45", "10:45"),
+    timeBlock("passing1", "Passing Period", "10:45", "10:50"),
+    timeBlock("p8", "8th Period", "10:50", "12:00")
   ]
-
 };
-
-
-/* ============================================================
-   LUNCH DATA
-   ============================================================ */
 
 const LUNCHES = {
-
   Blue: [
-    {
-      id: "A",
-      name: "A Lunch",
-      start: "10:45",
-      end: "11:15"
-    },
-    {
-      id: "B",
-      name: "B Lunch",
-      start: "11:35",
-      end: "12:05"
-    },
-    {
-      id: "C",
-      name: "C Lunch",
-      start: "12:25",
-      end: "12:55"
-    }
+    timeBlock("A", "A Lunch", "10:45", "11:15"),
+    timeBlock("B", "B Lunch", "11:35", "12:05"),
+    timeBlock("C", "C Lunch", "12:25", "12:55")
   ],
-
-
   White: [
-    {
-      id: "A",
-      name: "A Lunch",
-      start: "10:45",
-      end: "11:15"
-    },
-    {
-      id: "B",
-      name: "B Lunch",
-      start: "11:35",
-      end: "12:05"
-    },
-    {
-      id: "C",
-      name: "C Lunch",
-      start: "12:25",
-      end: "12:55"
-    }
+    timeBlock("A", "A Lunch", "10:45", "11:15"),
+    timeBlock("B", "B Lunch", "11:35", "12:05"),
+    timeBlock("C", "C Lunch", "12:25", "12:55")
   ],
-
-
   RAM: [
-    {
-      id: "A",
-      name: "A Lunch",
-      start: "11:10",
-      end: "11:35"
-    },
-    {
-      id: "B",
-      name: "B Lunch",
-      start: "11:40",
-      end: "12:10"
-    },
-    {
-      id: "C",
-      name: "C Lunch",
-      start: "12:15",
-      end: "12:40"
-    }
+    timeBlock("A", "A Lunch", "11:10", "11:35"),
+    timeBlock("B", "B Lunch", "11:40", "12:10"),
+    timeBlock("C", "C Lunch", "12:15", "12:40")
   ]
-
 };
 
+const LUNCH_HOST_PERIOD = {
+  Blue: "p5",
+  White: "p6",
+  RAM: "p6"
+};
 
-/* ============================================================
-   DOM
-   ============================================================ */
+const DAY_CLASS = {
+  Blue: "day-blue",
+  White: "day-white",
+  RAM: "day-ram",
+  "ER White": "day-white"
+};
 
-const dayMessage = document.getElementById("dayMessage");
+const SCHOOL_END_SECONDS = Object.fromEntries(
+  Object.entries(SCHEDULES).map(([dayType, schedule]) => [
+    dayType,
+    schedule[schedule.length - 1].endSeconds
+  ])
+);
 
-const currentPeriodElement =
-  document.getElementById("currentPeriod");
+const DISPLAY_SCHEDULES = Object.fromEntries(
+  Object.keys(SCHEDULES).map(dayType => [
+    dayType,
+    [
+      ...SCHEDULES[dayType].map(item => ({ ...item, isLunch: false })),
+      ...(LUNCHES[dayType] || []).map(item => ({ ...item, isLunch: true }))
+    ].sort((a, b) => a.startSeconds - b.startSeconds)
+  ])
+);
 
-const countdownElement =
-  document.getElementById("countdown");
+/* ---------------------------------- DOM ---------------------------------- */
 
-const progressRing =
-  document.getElementById("progressRing");
+const byId = id => document.getElementById(id);
 
-const progressPercent =
-  document.getElementById("progressPercent");
+const elements = {
+  dayMessage: byId("dayMessage"),
+  currentPeriod: byId("currentPeriod"),
+  countdown: byId("countdown"),
+  progressRing: byId("progressRing"),
+  progressPercent: byId("progressPercent"),
+  periodTimes: byId("periodTimes"),
+  lunchSection: byId("lunchSection"),
+  scheduleToggle: byId("scheduleToggle"),
+  schedulePanel: byId("schedulePanel"),
+  scheduleList: byId("scheduleList"),
+  scheduleTitle: byId("scheduleTitle"),
+  daySelector: byId("daySelector"),
+  lunches: {
+    A: { timer: byId("lunchATimer"), status: byId("lunchAStatus") },
+    B: { timer: byId("lunchBTimer"), status: byId("lunchBStatus") },
+    C: { timer: byId("lunchCTimer"), status: byId("lunchCStatus") }
+  }
+};
 
-const periodTimes =
-  document.getElementById("periodTimes");
+function setText(element, text) {
+  if (element.textContent !== text) {
+    element.textContent = text;
+  }
+}
 
-const lunchSection =
-  document.getElementById("lunchSection");
+function setHidden(element, hidden) {
+  element.classList.toggle("hidden", hidden);
+}
 
-const scheduleToggle =
-  document.getElementById("scheduleToggle");
-
-const schedulePanel =
-  document.getElementById("schedulePanel");
-
-const scheduleList =
-  document.getElementById("scheduleList");
-
-const scheduleTitle =
-  document.getElementById("scheduleTitle");
-
-const daySelector =
-  document.getElementById("daySelector");
-
-
-/* ============================================================
-   DATE / TIME HELPERS
-   ============================================================ */
+/* --------------------------- Date/time helpers --------------------------- */
 
 function dateKey(date) {
   const year = date.getFullYear();
-
-  const month =
-    String(date.getMonth() + 1).padStart(2, "0");
-
-  const day =
-    String(date.getDate()).padStart(2, "0");
-
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
-
-function timeToDate(time, referenceDate = new Date()) {
-  const [hours, minutes] =
-    time.split(":").map(Number);
-
-  const result =
-    new Date(referenceDate);
-
-  result.setHours(
-    hours,
-    minutes,
-    0,
-    0
+function secondsIntoDay(date) {
+  return (
+    date.getHours() * 3600
+    + date.getMinutes() * 60
+    + date.getSeconds()
+    + date.getMilliseconds() / 1000
   );
-
-  return result;
 }
 
-
 function formatTime12(time) {
-  const [hoursString, minutes] =
-    time.split(":");
-
-  const hours =
-    Number(hoursString);
-
-  const displayHour =
-    hours % 12 || 12;
-
+  const [hoursString, minutes] = time.split(":");
+  const displayHour = Number(hoursString) % 12 || 12;
   return `${displayHour}:${minutes}`;
 }
 
+function formatDuration(seconds) {
+  const totalSeconds = Math.ceil(Math.max(0, seconds));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
 
-function formatDuration(milliseconds) {
-  milliseconds =
-    Math.max(0, milliseconds);
-
-  const totalSeconds =
-    Math.floor(milliseconds / 1000);
-
-  const hours =
-    Math.floor(totalSeconds / 3600);
-
-  const minutes =
-    Math.floor((totalSeconds % 3600) / 60);
-
-  const seconds =
-    totalSeconds % 60;
-
-  return [
-    hours,
-    minutes,
-    seconds
-  ]
-    .map(value =>
-      String(value).padStart(2, "0")
-    )
+  return [hours, minutes, remainingSeconds]
+    .map(value => String(value).padStart(2, "0"))
     .join(":");
 }
 
-
-function formatShortDuration(milliseconds) {
-  milliseconds =
-    Math.max(0, milliseconds);
-
-  const totalSeconds =
-    Math.floor(milliseconds / 1000);
-
-  const minutes =
-    Math.floor(totalSeconds / 60);
-
-  const seconds =
-    totalSeconds % 60;
-
-  return (
-    String(minutes).padStart(2, "0")
-    + ":"
-    + String(seconds).padStart(2, "0")
-  );
+function formatShortDuration(seconds) {
+  const totalSeconds = Math.ceil(Math.max(0, seconds));
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
-
-/* ============================================================
-   SCHOOL DAY LOGIC
-   ============================================================ */
-
-function isNoSchool(date) {
-  const key =
-    dateKey(date);
-
-  if (NO_SCHOOL_DATES.has(key)) {
-    return true;
-  }
-
-  const day =
-    date.getDay();
-
-  return day === 0 || day === 6;
-}
-
+/* ---------------------------- School-day logic --------------------------- */
 
 function getDayType(date) {
-  const key =
-    dateKey(date);
+  const key = dateKey(date);
 
   if (NO_SCHOOL_DATES.has(key)) {
     return null;
   }
 
-  if (DAY_EXCEPTIONS[key]) {
-    return DAY_EXCEPTIONS[key];
-  }
-
-  return WEEK_PATTERN[date.getDay()] || null;
+  const dayType = DAY_EXCEPTIONS[key] || WEEK_PATTERN[date.getDay()];
+  return SCHEDULES[dayType] ? dayType : null;
 }
 
-
 function getNextSchoolDay(date) {
-  const next =
-    new Date(date);
+  const next = new Date(date);
 
   do {
-    next.setDate(
-      next.getDate() + 1
-    );
-  } while (
-    isNoSchool(next)
-    || !getDayType(next)
-  );
+    next.setDate(next.getDate() + 1);
+  } while (!getDayType(next));
 
   return next;
 }
 
+function getDisplayDayInfo(now) {
+  const todayType = getDayType(now);
 
-function getDisplayDayInfo() {
-  const now =
-    new Date();
-
-  const todayType =
-    getDayType(now);
-
-  if (todayType) {
-    const schedule =
-      SCHEDULES[todayType];
-
-    const lastPeriod =
-      schedule[schedule.length - 1];
-
-    const end =
-      timeToDate(lastPeriod.end, now);
-
-    if (now < end) {
-      return {
-        date: now,
-        type: todayType,
-        relation: "today"
-      };
-    }
+  if (todayType && secondsIntoDay(now) < SCHOOL_END_SECONDS[todayType]) {
+    return { date: now, type: todayType, relation: "today" };
   }
 
-  const next =
-    getNextSchoolDay(now);
-
-  return {
-    date: next,
-    type: getDayType(next),
-    relation: "next"
-  };
+  const next = getNextSchoolDay(now);
+  return { date: next, type: getDayType(next), relation: "next" };
 }
 
+/* ------------------------------ Period logic ----------------------------- */
 
-/* ============================================================
-   PERIOD LOGIC
-   ============================================================ */
-
-function getCurrentPeriod(dayType) {
-  const schedule =
-    SCHEDULES[dayType];
-
-  if (!schedule) {
-    return null;
-  }
-
-  const now =
-    new Date();
-
-  for (const period of schedule) {
-    const start =
-      timeToDate(period.start, now);
-
-    const end =
-      timeToDate(period.end, now);
-
-    if (
-      now >= start
-      && now < end
-    ) {
-      return {
-        ...period,
-        startDate: start,
-        endDate: end
-      };
-    }
-  }
-
-  return null;
+function getCurrentPeriod(dayType, nowSeconds) {
+  return SCHEDULES[dayType]?.find(
+    period => nowSeconds >= period.startSeconds && nowSeconds < period.endSeconds
+  ) || null;
 }
 
-
-function getNextPeriod(dayType) {
-  const schedule =
-    SCHEDULES[dayType];
-
-  if (!schedule) {
-    return null;
-  }
-
-  const now =
-    new Date();
-
-  for (const period of schedule) {
-    const start =
-      timeToDate(period.start, now);
-
-    if (start > now) {
-      return {
-        ...period,
-        startDate: start
-      };
-    }
-  }
-
-  return null;
+function getNextPeriod(dayType, nowSeconds) {
+  return SCHEDULES[dayType]?.find(period => period.startSeconds > nowSeconds) || null;
 }
 
+/* -------------------------------- Renders -------------------------------- */
 
-/* ============================================================
-   DAY MESSAGE
-   ============================================================ */
+let lastDayMessageKey = "";
+let lastProgressDegrees;
+let lastProgressPercent;
+let renderedScheduleType;
+let highlightedPeriodId;
+let scheduleRows = new Map();
 
-function renderDayMessage() {
-  const info =
-    getDisplayDayInfo();
+function renderDayMessage(now) {
+  const info = getDisplayDayInfo(now);
+  const messageKey = `${dateKey(info.date)}:${info.type}:${info.relation}`;
 
-  dayMessage.className = "";
+  if (messageKey === lastDayMessageKey) {
+    return;
+  }
+
+  lastDayMessageKey = messageKey;
 
   if (!info.type) {
-    dayMessage.textContent =
-      "No school.";
-
+    setText(elements.dayMessage, "No school.");
     return;
   }
 
-  const article =
-    info.type === "ER White"
-      ? "an"
-      : "a";
+  const dayType = document.createElement("span");
+  dayType.className = DAY_CLASS[info.type] || "";
+  dayType.textContent = info.type;
+  const article = info.type === "ER White" ? "an" : "a";
 
   if (info.relation === "today") {
-    dayMessage.innerHTML =
-      `Today is ${article} <span>${info.type}</span> Day.`;
-  } else {
-    const weekday =
-      info.date.toLocaleDateString(
-        "en-US",
-        {
-          weekday: "long"
-        }
-      );
-
-    dayMessage.innerHTML =
-      `${weekday} will be ${article} <span>${info.type}</span> Day.`;
-  }
-
-  const span =
-    dayMessage.querySelector("span");
-
-  if (!span) {
+    elements.dayMessage.replaceChildren(`Today is ${article} `, dayType, " Day.");
     return;
   }
 
-  if (info.type === "Blue") {
-    span.className =
-      "day-blue";
-  } else if (info.type === "White") {
-    span.className =
-      "day-white";
-  } else if (info.type === "RAM") {
-    span.className =
-      "day-ram";
-  } else if (info.type === "ER White") {
-    span.className =
-      "day-white";
+  const weekday = info.date.toLocaleDateString("en-US", { weekday: "long" });
+  elements.dayMessage.replaceChildren(
+    `${weekday} will be ${article} `,
+    dayType,
+    " Day."
+  );
+}
+
+function setProgress(progress) {
+  const normalized = Math.max(0, Math.min(1, progress));
+  const percent = Math.round(normalized * 100);
+  const degrees = Math.round(normalized * 36000) / 100;
+
+  if (degrees !== lastProgressDegrees) {
+    elements.progressRing.style.setProperty("--progress", `${degrees}deg`);
+    lastProgressDegrees = degrees;
+  }
+
+  if (percent !== lastProgressPercent) {
+    elements.progressRing.setAttribute("aria-valuenow", String(percent));
+    setText(elements.progressPercent, `${percent}%`);
+    lastProgressPercent = percent;
   }
 }
 
+function updateLunch(dayType, currentPeriod, nowSeconds) {
+  const isLunchPeriod = LUNCH_HOST_PERIOD[dayType] === currentPeriod.id;
+  setHidden(elements.lunchSection, !isLunchPeriod);
 
-/* ============================================================
-   MAIN TIMER
-   ============================================================ */
-
-function updateMainTracker() {
-  const now =
-    new Date();
-
-  const todayType =
-    getDayType(now);
-
-  if (!todayType) {
-    currentPeriodElement.textContent =
-      "No school today";
-
-    countdownElement.textContent =
-      "--:--:--";
-
-    periodTimes.textContent =
-      "";
-
-    setProgress(0);
-
-    lunchSection.classList.add("hidden");
-
+  if (!isLunchPeriod) {
     return;
   }
 
-  const current =
-    getCurrentPeriod(todayType);
+  for (const lunch of LUNCHES[dayType]) {
+    const lunchElements = elements.lunches[lunch.id];
+    let time;
+    let status;
+
+    if (nowSeconds < lunch.startSeconds) {
+      time = formatShortDuration(lunch.startSeconds - nowSeconds);
+      status = "until lunch";
+    } else if (nowSeconds < lunch.endSeconds) {
+      time = formatShortDuration(lunch.endSeconds - nowSeconds);
+      status = "remaining";
+    } else {
+      time = "00:00";
+      status = "finished";
+    }
+
+    setText(lunchElements.timer, time);
+    setText(lunchElements.status, status);
+  }
+}
+
+function updateMainTracker(now) {
+  const todayType = getDayType(now);
+  const nowSeconds = secondsIntoDay(now);
+
+  if (!todayType) {
+    setText(elements.currentPeriod, "No school today");
+    setText(elements.countdown, "--:--:--");
+    setText(elements.periodTimes, "");
+    setProgress(0);
+    setHidden(elements.lunchSection, true);
+    return;
+  }
+
+  const current = getCurrentPeriod(todayType, nowSeconds);
 
   if (!current) {
-    const first =
-      SCHEDULES[todayType][0];
+    const first = SCHEDULES[todayType][0];
 
-    const firstStart =
-      timeToDate(first.start, now);
-
-    if (now < firstStart) {
-      currentPeriodElement.textContent =
-        "School starts in";
-
-      countdownElement.textContent =
-        formatDuration(
-          firstStart - now
-        );
-
-      periodTimes.textContent =
-        formatTime12(first.start);
-
+    if (nowSeconds < first.startSeconds) {
+      setText(elements.currentPeriod, "School starts in");
+      setText(elements.countdown, formatDuration(first.startSeconds - nowSeconds));
+      setText(elements.periodTimes, formatTime12(first.start));
       setProgress(0);
     } else {
-      const next =
-        getNextPeriod(todayType);
+      const next = getNextPeriod(todayType, nowSeconds);
 
       if (next) {
-        currentPeriodElement.textContent =
-          `${next.name} starts in`;
-
-        countdownElement.textContent =
-          formatDuration(
-            next.startDate - now
-          );
-
-        periodTimes.textContent =
-          formatTime12(next.start);
+        setText(elements.currentPeriod, `${next.name} starts in`);
+        setText(elements.countdown, formatDuration(next.startSeconds - nowSeconds));
+        setText(elements.periodTimes, formatTime12(next.start));
+        setProgress(0);
       } else {
-        currentPeriodElement.textContent =
-          "School is over";
-
-        countdownElement.textContent =
-          "00:00:00";
-
-        periodTimes.textContent =
-          "";
-
+        setText(elements.currentPeriod, "School is over");
+        setText(elements.countdown, "00:00:00");
+        setText(elements.periodTimes, "");
         setProgress(1);
       }
     }
 
-    lunchSection.classList.add("hidden");
-
+    setHidden(elements.lunchSection, true);
     return;
   }
 
-  currentPeriodElement.textContent =
-    current.name;
+  const totalTime = current.endSeconds - current.startSeconds;
+  const elapsed = nowSeconds - current.startSeconds;
 
-  const totalTime =
-    current.endDate - current.startDate;
-
-  const elapsed =
-    now - current.startDate;
-
-  const remaining =
-    current.endDate - now;
-
-  countdownElement.textContent =
-    formatDuration(remaining);
-
-  periodTimes.textContent =
-    `${formatTime12(current.start)} – ${formatTime12(current.end)}`;
-
-  setProgress(
-    elapsed / totalTime
+  setText(elements.currentPeriod, current.name);
+  setText(elements.countdown, formatDuration(current.endSeconds - nowSeconds));
+  setText(
+    elements.periodTimes,
+    `${formatTime12(current.start)} – ${formatTime12(current.end)}`
   );
-
-  updateLunch(todayType, current);
+  setProgress(elapsed / totalTime);
+  updateLunch(todayType, current, nowSeconds);
 }
 
-
-/* ============================================================
-   PROGRESS
-   ============================================================ */
-
-function setProgress(progress) {
-  progress =
-    Math.max(
-      0,
-      Math.min(1, progress)
-    );
-
-  const degrees =
-    progress * 360;
-
-  progressRing.style.setProperty(
-    "--progress",
-    `${degrees}deg`
-  );
-
-  progressPercent.textContent =
-    `${Math.round(progress * 100)}%`;
+function selectedScheduleType(now) {
+  return elements.daySelector.value === "auto"
+    ? getDisplayDayInfo(now).type
+    : elements.daySelector.value;
 }
 
+function updateScheduleHighlight(dayType, now) {
+  const currentId = getDayType(now) === dayType
+    ? getCurrentPeriod(dayType, secondsIntoDay(now))?.id
+    : undefined;
 
-/* ============================================================
-   LUNCH TRACKER
-   ============================================================ */
-
-function updateLunch(dayType, currentPeriod) {
-  const lunches =
-    LUNCHES[dayType];
-
-  if (!lunches) {
-    lunchSection.classList.add("hidden");
+  if (currentId === highlightedPeriodId) {
     return;
   }
 
-  const lunchHost =
-    (
-      dayType === "Blue"
-      && currentPeriod.id === "p5"
-    )
-    ||
-    (
-      dayType === "White"
-      && currentPeriod.id === "p6"
-    )
-    ||
-    (
-      dayType === "RAM"
-      && currentPeriod.id === "p6"
-    );
+  if (highlightedPeriodId) {
+    scheduleRows.get(highlightedPeriodId)?.classList.remove("current");
+  }
 
-  if (!lunchHost) {
-    lunchSection.classList.add(
-      "hidden"
-    );
+  if (currentId) {
+    scheduleRows.get(currentId)?.classList.add("current");
+  }
 
+  highlightedPeriodId = currentId;
+}
+
+function renderSchedule(now, force = false) {
+  const dayType = selectedScheduleType(now);
+
+  if (!force && dayType === renderedScheduleType) {
+    updateScheduleHighlight(dayType, now);
     return;
   }
 
-  lunchSection.classList.remove(
-    "hidden"
-  );
-
-  const now =
-    new Date();
-
-  lunches.forEach(lunch => {
-    const start =
-      timeToDate(lunch.start, now);
-
-    const end =
-      timeToDate(lunch.end, now);
-
-    const timer =
-      document.getElementById(
-        `lunch${lunch.id}Timer`
-      );
-
-    const status =
-      document.getElementById(
-        `lunch${lunch.id}Status`
-      );
-
-    if (now < start) {
-      timer.textContent =
-        formatShortDuration(
-          start - now
-        );
-
-      status.textContent =
-        "until lunch";
-    }
-
-    else if (now < end) {
-      timer.textContent =
-        formatShortDuration(
-          end - now
-        );
-
-      status.textContent =
-        "remaining";
-    }
-
-    else {
-      timer.textContent =
-        "00:00";
-
-      status.textContent =
-        "finished";
-    }
-  });
-}
-
-
-/* ============================================================
-   SCHEDULE DISPLAY
-   ============================================================ */
-
-function selectedScheduleType() {
-  if (
-    daySelector.value !== "auto"
-  ) {
-    return daySelector.value;
-  }
-
-  return getDisplayDayInfo().type;
-}
-
-
-function renderSchedule() {
-  const dayType =
-    selectedScheduleType();
-
-  scheduleList.innerHTML = "";
+  renderedScheduleType = dayType;
+  highlightedPeriodId = undefined;
+  scheduleRows = new Map();
 
   if (!dayType) {
-    scheduleTitle.textContent =
-      "No Schedule";
-
+    setText(elements.scheduleTitle, "No Schedule");
+    elements.scheduleList.replaceChildren();
     return;
   }
 
-  const schedule =
-    SCHEDULES[dayType];
+  setText(elements.scheduleTitle, `${dayType} Day Schedule`);
 
-  if (!schedule) {
-    scheduleTitle.textContent =
-      "No Schedule";
+  const fragment = document.createDocumentFragment();
 
-    return;
-  }
-
-  scheduleTitle.textContent =
-    `${dayType} Day Schedule`;
-
-  const lunches =
-    LUNCHES[dayType] || [];
-
-  const current =
-    getCurrentPeriod(dayType);
-
-  const displayItems = [
-    ...schedule.map(item => ({
-      ...item,
-      isLunch: false
-    })),
-
-    ...lunches.map(item => ({
-      ...item,
-      isLunch: true
-    }))
-  ];
-
-  displayItems.sort((a, b) => {
-    return (
-      timeToDate(a.start)
-      -
-      timeToDate(b.start)
-    );
-  });
-
-  displayItems.forEach(item => {
-    const row =
-      document.createElement("div");
-
-    row.className =
-      "schedule-row";
+  for (const item of DISPLAY_SCHEDULES[dayType]) {
+    const row = document.createElement("div");
+    row.className = "schedule-row";
 
     if (item.isLunch) {
-      row.classList.add(
-        "lunch-row"
-      );
+      row.classList.add("lunch-row");
+    } else {
+      scheduleRows.set(item.id, row);
     }
 
-    if (
-      current
-      && current.id === item.id
-      && !item.isLunch
-    ) {
-      row.classList.add(
-        "current"
-      );
-    }
+    const name = document.createElement("span");
+    name.textContent = item.name;
 
-    const name =
-      document.createElement("span");
+    const time = document.createElement("span");
+    time.className = "schedule-time";
+    time.textContent = `${formatTime12(item.start)} – ${formatTime12(item.end)}`;
 
-    name.textContent =
-      item.name;
+    row.append(name, time);
+    fragment.append(row);
+  }
 
-    const time =
-      document.createElement("span");
-
-    time.className =
-      "schedule-time";
-
-    time.textContent =
-      `${formatTime12(item.start)} – ${formatTime12(item.end)}`;
-
-    row.appendChild(name);
-
-    row.appendChild(time);
-
-    scheduleList.appendChild(row);
-  });
+  elements.scheduleList.replaceChildren(fragment);
+  updateScheduleHighlight(dayType, now);
 }
 
+/* ------------------------------- UI events ------------------------------- */
 
-/* ============================================================
-   UI EVENTS
-   ============================================================ */
+elements.scheduleToggle.addEventListener("click", () => {
+  const shouldOpen = elements.schedulePanel.classList.contains("hidden");
 
-scheduleToggle.addEventListener(
-  "click",
-  () => {
-    const hidden =
-      schedulePanel.classList.contains(
-        "hidden"
-      );
-
-    if (hidden) {
-      renderSchedule();
-
-      schedulePanel.classList.remove(
-        "hidden"
-      );
-
-      scheduleToggle.textContent =
-        "Hide Schedule";
-    } else {
-      schedulePanel.classList.add(
-        "hidden"
-      );
-
-      scheduleToggle.textContent =
-        "Show Schedule";
-    }
+  if (shouldOpen) {
+    renderSchedule(new Date(), true);
   }
-);
 
+  setHidden(elements.schedulePanel, !shouldOpen);
+  elements.scheduleToggle.setAttribute("aria-expanded", String(shouldOpen));
+  setText(elements.scheduleToggle, shouldOpen ? "Hide Schedule" : "Show Schedule");
+});
 
-daySelector.addEventListener(
-  "change",
-  renderSchedule
-);
-
-
-/* ============================================================
-   START
-   ============================================================ */
+elements.daySelector.addEventListener("change", () => renderSchedule(new Date(), true));
 
 function updateEverything() {
-  renderDayMessage();
+  const now = new Date();
+  renderDayMessage(now);
+  updateMainTracker(now);
 
-  updateMainTracker();
-
-  if (
-    !schedulePanel.classList.contains(
-      "hidden"
-    )
-  ) {
-    renderSchedule();
+  if (!elements.schedulePanel.classList.contains("hidden")) {
+    renderSchedule(now);
   }
 }
 
+let updateTimer;
+
+document.addEventListener("visibilitychange", () => {
+  clearTimeout(updateTimer);
+
+  if (document.hidden) {
+    updateTimer = undefined;
+    return;
+  }
+
+  updateEverything();
+  queueNextUpdate();
+});
+
+function queueNextUpdate() {
+  if (document.hidden) {
+    updateTimer = undefined;
+    return;
+  }
+
+  const delay = 1020 - (Date.now() % 1000);
+
+  updateTimer = setTimeout(() => {
+    updateEverything();
+    queueNextUpdate();
+  }, delay);
+}
 
 updateEverything();
-
-setInterval(
-  updateEverything,
-  1000
-);
+queueNextUpdate();
