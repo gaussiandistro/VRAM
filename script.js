@@ -1,7 +1,3 @@
-/* RamWatch: standalone school schedule tracker */
-
-/* ----------------------------- Configuration ----------------------------- */
-
 const WEEK_PATTERN = {
   1: "Blue",
   2: "White",
@@ -10,7 +6,7 @@ const WEEK_PATTERN = {
   5: "White"
 };
 
-// Dates that do not follow the weekly pattern (YYYY-MM-DD).
+//(YYYY-MM-DD)
 const DAY_EXCEPTIONS = {
   "2026-08-25": "Blue",
   "2026-08-26": "White",
@@ -35,7 +31,7 @@ const DAY_EXCEPTIONS = {
   "2026-12-17": "White"
 };
 
-// Dates with no school (YYYY-MM-DD).
+//(YYYY-MM-DD)
 const NO_SCHOOL_DATES = new Set([
   "2026-09-07",
   "2026-11-03",
@@ -155,7 +151,7 @@ const DISPLAY_SCHEDULES = Object.fromEntries(
   ])
 );
 
-/* ---------------------------------- DOM ---------------------------------- */
+/* DOM */
 
 const byId = id => document.getElementById(id);
 
@@ -189,7 +185,7 @@ function setHidden(element, hidden) {
   element.classList.toggle("hidden", hidden);
 }
 
-/* --------------------------- Date/time helpers --------------------------- */
+/* Date/time helpers */
 
 function dateKey(date) {
   const year = date.getFullYear();
@@ -231,7 +227,7 @@ function formatShortDuration(seconds) {
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
-/* ---------------------------- School-day logic --------------------------- */
+/* School day logic */
 
 function getDayType(date) {
   const key = dateKey(date);
@@ -265,7 +261,7 @@ function getDisplayDayInfo(now) {
   return { date: next, type: getDayType(next), relation: "next" };
 }
 
-/* ------------------------------ Period logic ----------------------------- */
+/*  Period logic  */
 
 function getCurrentPeriod(dayType, nowSeconds) {
   return SCHEDULES[dayType]?.find(
@@ -277,7 +273,7 @@ function getNextPeriod(dayType, nowSeconds) {
   return SCHEDULES[dayType]?.find(period => period.startSeconds > nowSeconds) || null;
 }
 
-/* -------------------------------- Renders -------------------------------- */
+/*  Renders  */
 
 let lastDayMessageKey = "";
 let lastProgressDegrees;
@@ -494,7 +490,7 @@ function renderSchedule(now, force = false) {
   updateScheduleHighlight(dayType, now);
 }
 
-/* ------------------------------- UI events ------------------------------- */
+/*  UI events  */
 
 elements.scheduleToggle.addEventListener("click", () => {
   const shouldOpen = elements.schedulePanel.classList.contains("hidden");
