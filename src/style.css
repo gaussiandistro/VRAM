@@ -138,8 +138,51 @@ body {
 }
 
 .lunch-section,
+.notif-section,
 .schedule-section {
   margin-top: 60px;
+}
+
+.notif-section h2 {
+  margin: 0 0 18px;
+  text-align: center;
+  font-size: 32px;
+}
+
+.notif-hint {
+  max-width: 460px;
+  margin: 14px auto 0;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.notif-options {
+  max-width: 460px;
+  margin: 18px auto 0;
+  padding: 6px 18px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  text-align: left;
+}
+
+.notif-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.notif-option input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--blue-day);
+}
+
+.notif-option + .notif-option {
+  border-top: 1px solid var(--row-border);
 }
 
 .lunch-section h2 {
@@ -325,6 +368,10 @@ body {
 
   .schedule-header {
     flex-direction: column;
+  }
+
+  .notif-option {
+    font-size: 15px;
   }
 
   .schedule-row {

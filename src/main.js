@@ -171,6 +171,13 @@ const elements = {
   scheduleList: byId("scheduleList"),
   scheduleTitle: byId("scheduleTitle"),
   daySelector: byId("daySelector"),
+  notifSection: byId("notifSection"),
+  notifToggle: byId("notifToggle"),
+  notifHint: byId("notifHint"),
+  notifOptions: byId("notifOptions"),
+  notifPeriodEnd: byId("notifPeriodEnd"),
+  notifLunchEnd: byId("notifLunchEnd"),
+  notifUpcoming: byId("notifUpcoming"),
   lunches: {
     A: { timer: byId("lunchATimer"), status: byId("lunchAStatus") },
     B: { timer: byId("lunchBTimer"), status: byId("lunchBStatus") },
@@ -194,6 +201,161 @@ function saveClockFormat() {
     localStorage.setItem(CLOCK_STORAGE_KEY, clockFormat);
   } catch {
     // no error handling here
+  }
+}
+
+/* Notification settings */
+
+const NOTIF_STORAGE_KEY = "vram-notifs";
+const DEFAULT_NOTIF_SETTINGS = { enabled: false, periodEnd: true, lunchEnd: true, upcoming: true };
+const UPCOMING_WARN_SECONDS = 120;
+const UPCOMING_TAG = "vram-upcoming";
+
+function loadNotifSettings() {
+  try {
+    return { ...DEFAULT_NOTIF_SETTINGS, ...JSON.parse(localStorage.getItem(NOTIF_STORAGE_KEY)) };
+  } catch {
+    return { ...DEFAULT_NOTIF_SETTINGS };
+  }
+}
+
+function saveNotifSettings() {
+  try {
+    localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(notifSettings));
+  } catch {
+    // Storage unavailable
+  }
+}
+
+const TRANSITION_TAG = "vram-transition";
+const STALE_WINDOW_SECONDS = 45;
+let notifSettings = loadNotifSettings();
+let lastNotifiedKey = "";
+
+function notificationsSupported() {
+  return "Notification" in window;
+}
+
+function notificationPermission() {
+  return notificationsSupported() ? Notification.permission : "denied";
+}
+
+async function showNotification(title, body, tag) {
+  if (notificationPermission() !== "granted") {
+    return;
+  }
+
+  const options = { body, tag, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png" };
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+
+      if (registration) {
+        await registration.showNotification(title, options);
+        return;
+      }
+    }
+
+    const notification = new Notification(title, options);
+    notification.addEventListener("click", () => {
+      window.focus();
+      notification.close();
+    });
+  } catch {
+    // No handling here
+  }
+}
+
+const NOTIF_TRANSITIONS = Object.fromEntries(
+  Object.keys(SCHEDULES).map((dayType) => {
+    const schedule = SCHEDULES[dayType];
+    const transitions = [];
+    const first = schedule[0];
+
+    transitions.push({
+      seconds: first.startSeconds,
+      title: "School starting",
+      body: `First block: ${first.name}.`,
+      soon: "School starts in 2 minutes.",
+    });
+
+    for (const period of schedule) {
+      if (period.id.startsWith("passing")) {
+        continue;
+      }
+
+      const next = schedule.find(
+        (item) => item.startSeconds >= period.endSeconds && !item.id.startsWith("passing")
+      );
+
+      transitions.push({
+        seconds: period.endSeconds,
+        title: "Period ended",
+        body: next
+          ? `${period.name} ended. Next: ${next.name}.`
+          : `${period.name} ended. See you tomorrow!`,
+        soon: `${period.name} ends in 2 minutes.`,
+      });
+    }
+
+    for (const lunch of LUNCHES[dayType] || []) {
+      if (transitions.some((item) => item.seconds === lunch.endSeconds)) {
+        continue;
+      }
+
+      transitions.push({
+        seconds: lunch.endSeconds,
+        title: "Lunch ended",
+        body: `${lunch.name} ended.`,
+        soon: `${lunch.name} ends in 2 minutes.`,
+      });
+    }
+
+    transitions.sort((a, b) => a.seconds - b.seconds);
+    return [dayType, transitions];
+  })
+);
+
+function checkNotifications(now) {
+  if (!notifSettings.enabled || document.hidden || notificationPermission() !== "granted") {
+    return;
+  }
+
+  const todayType = getDayType(now);
+  const transitions = todayType ? NOTIF_TRANSITIONS[todayType] : null;
+
+  if (!transitions) {
+    return;
+  }
+
+  const nowSeconds = secondsIntoDay(now);
+
+  for (const transition of transitions) {
+    const key = `${todayType}:${transition.seconds}`;
+    const secondsLeft = transition.seconds - nowSeconds;
+
+    if (secondsLeft > 0) {
+      if (
+        notifSettings.upcoming &&
+        secondsLeft <= UPCOMING_WARN_SECONDS &&
+        lastNotifiedKey !== `warn:${key}`
+      ) {
+        lastNotifiedKey = `warn:${key}`;
+        void showNotification(transition.title, transition.soon, UPCOMING_TAG);
+      }
+
+      break;
+		}
+
+    if (secondsLeft >= -STALE_WINDOW_SECONDS && lastNotifiedKey !== key) {
+      lastNotifiedKey = key;
+
+      const isLunch = transition.title === "Lunch ended";
+      if (isLunch ? notifSettings.lunchEnd : notifSettings.periodEnd) {
+        void showNotification(transition.title, transition.body, TRANSITION_TAG);
+      }
+    }
   }
 }
 
@@ -544,10 +706,89 @@ elements.clockToggle.addEventListener("click", () => {
 
 updateClockToggleLabel();
 
+function updateNotificationUI() {
+  const permission = notificationPermission();
+  const unsupported = !notificationsSupported();
+  const granted = permission === "granted";
+
+  elements.notifSection.classList.toggle("hidden", unsupported);
+
+  if (unsupported) {
+    return;
+  }
+
+  elements.notifToggle.disabled = permission === "denied";
+  elements.notifToggle.setAttribute("aria-pressed", String(granted && notifSettings.enabled));
+  setText(
+    elements.notifToggle,
+    permission === "denied"
+      ? "Notifications blocked"
+      : granted && notifSettings.enabled
+        ? "Disable Notifications"
+        : "Enable Notifications"
+  );
+  setText(
+    elements.notifHint,
+    permission === "denied"
+      ? "Blocked in browser settings."
+      : granted
+        ? notifSettings.enabled
+          ? "Alerts are on for this device."
+          : "Permission granted, turn on alerts below."
+        : "Get an alert for when period ends."
+  );
+  setHidden(elements.notifOptions, !granted || !notifSettings.enabled);
+  elements.notifPeriodEnd.checked = notifSettings.periodEnd;
+  elements.notifLunchEnd.checked = notifSettings.lunchEnd;
+  elements.notifUpcoming.checked = notifSettings.upcoming;
+}
+
+elements.notifToggle.addEventListener("click", async () => {
+  if (notifSettings.enabled) {
+    notifSettings.enabled = false;
+    saveNotifSettings();
+    updateNotificationUI();
+    return;
+  }
+
+  if (notificationPermission() !== "granted") {
+    try {
+      const permission = await Notification.requestPermission();
+
+      if (permission !== "granted") {
+        updateNotificationUI();
+        return;
+      }
+    } catch {
+      updateNotificationUI();
+      return;
+    }
+  }
+
+  notifSettings.enabled = true;
+  saveNotifSettings();
+  updateNotificationUI();
+});
+
+for (const [checkbox, settingKey] of [
+  [elements.notifPeriodEnd, "periodEnd"],
+  [elements.notifLunchEnd, "lunchEnd"],
+  [elements.notifUpcoming, "upcoming"],
+]) {
+  checkbox.addEventListener("change", () => {
+    notifSettings[settingKey] = checkbox.checked;
+    saveNotifSettings();
+    updateNotificationUI();
+  });
+}
+
+updateNotificationUI();
+
 function updateEverything() {
   const now = new Date();
   renderDayMessage(now);
   updateMainTracker(now);
+  checkNotifications(now);
 
   if (!elements.schedulePanel.classList.contains("hidden")) {
     renderSchedule(now);
