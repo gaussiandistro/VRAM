@@ -16,6 +16,29 @@
   --ram-day: #d10000;
   --ring-background: #fff;
   --ring-progress: #111;
+  --field: #fff;
+  --row-border: rgb(0 0 0 / 18%);
+  --hover: rgb(255 255 255 / 40%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #131f30;
+    --text: #e8eef6;
+    --card: rgb(255 255 255 / 8%);
+    --border: #d5e0ec;
+    --blue-day: #8ab4f8;
+    --ram-day: #ff6b6b;
+    --ring-background: rgb(255 255 255 / 14%);
+    --ring-progress: #e8eef6;
+    --field: #1d2b3f;
+    --row-border: rgb(255 255 255 / 15%);
+    --hover: rgb(255 255 255 / 12%);
+  }
+
+  .day-white {
+    text-shadow: none;
+  }
 }
 
 *,
@@ -172,15 +195,32 @@ body {
     transform 0.15s ease;
 }
 
-.schedule-button:hover {
-  background: rgb(255 255 255 / 40%);
+.schedule-button:hover,
+.clock-toggle:hover {
+  background: var(--hover);
 }
 
-.schedule-button:active {
+.schedule-button:active,
+.clock-toggle:active {
   transform: scale(0.97);
 }
 
+.clock-toggle {
+  margin-top: 22px;
+  padding: 8px 18px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background-color 0.15s ease;
+}
+
 .schedule-button:focus-visible,
+.clock-toggle:focus-visible,
 .schedule-header select:focus-visible {
   outline: 3px solid var(--blue-day);
   outline-offset: 3px;
@@ -215,7 +255,7 @@ body {
   padding: 7px 10px;
   border: 2px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--field);
   color: var(--text);
   font-family: inherit;
   font-size: 15px;
@@ -223,7 +263,7 @@ body {
 
 .schedule-row {
   padding: 13px 10px;
-  border-bottom: 1px solid rgb(0 0 0 / 18%);
+  border-bottom: 1px solid var(--row-border);
   font-size: 18px;
 }
 
@@ -293,7 +333,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .schedule-button {
+  .schedule-button,
+  .clock-toggle {
     transition: none;
   }
 }

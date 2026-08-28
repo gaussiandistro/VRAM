@@ -164,6 +164,7 @@ const elements = {
   progressRing: byId("progressRing"),
   progressPercent: byId("progressPercent"),
   periodTimes: byId("periodTimes"),
+  clockToggle: byId("clockToggle"),
   lunchSection: byId("lunchSection"),
   scheduleToggle: byId("scheduleToggle"),
   schedulePanel: byId("schedulePanel"),
@@ -176,6 +177,25 @@ const elements = {
     C: { timer: byId("lunchCTimer"), status: byId("lunchCStatus") },
   },
 };
+
+const CLOCK_STORAGE_KEY = "vram-clock";
+let clockFormat = "12";
+
+try {
+  if (localStorage.getItem(CLOCK_STORAGE_KEY) === "24") {
+    clockFormat = "24";
+  }
+} catch {
+  // no error handling here
+}
+
+function saveClockFormat() {
+  try {
+    localStorage.setItem(CLOCK_STORAGE_KEY, clockFormat);
+  } catch {
+    // no error handling here
+  }
+}
 
 function setText(element, text) {
   if (element.textContent !== text) {
@@ -205,10 +225,17 @@ function secondsIntoDay(date) {
   );
 }
 
-function formatTime12(time) {
+function formatClock(time) {
   const [hoursString, minutes] = time.split(":");
-  const displayHour = Number(hoursString) % 12 || 12;
-  return `${displayHour}:${minutes}`;
+  const hours = Number(hoursString);
+
+  if (clockFormat === "24") {
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
+  }
+
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const displayHour = hours % 12 || 12;
+  return `${displayHour}:${minutes} ${suffix}`;
 }
 
 function formatDuration(seconds) {
@@ -382,7 +409,7 @@ function updateMainTracker(now) {
     if (nowSeconds < first.startSeconds) {
       setText(elements.currentPeriod, "School starts in");
       setText(elements.countdown, formatDuration(first.startSeconds - nowSeconds));
-      setText(elements.periodTimes, formatTime12(first.start));
+      setText(elements.periodTimes, formatClock(first.start));
       setProgress(0);
     } else {
       const next = getNextPeriod(todayType, nowSeconds);
@@ -390,7 +417,7 @@ function updateMainTracker(now) {
       if (next) {
         setText(elements.currentPeriod, `${next.name} starts in`);
         setText(elements.countdown, formatDuration(next.startSeconds - nowSeconds));
-        setText(elements.periodTimes, formatTime12(next.start));
+        setText(elements.periodTimes, formatClock(next.start));
         setProgress(0);
       } else {
         setText(elements.currentPeriod, "School is over");
@@ -409,7 +436,7 @@ function updateMainTracker(now) {
 
   setText(elements.currentPeriod, current.name);
   setText(elements.countdown, formatDuration(current.endSeconds - nowSeconds));
-  setText(elements.periodTimes, `${formatTime12(current.start)} – ${formatTime12(current.end)}`);
+  setText(elements.periodTimes, `${formatClock(current.start)} – ${formatClock(current.end)}`);
   setProgress(elapsed / totalTime);
   updateLunch(todayType, current, nowSeconds);
 }
@@ -476,7 +503,7 @@ function renderSchedule(now, force = false) {
 
     const time = document.createElement("span");
     time.className = "schedule-time";
-    time.textContent = `${formatTime12(item.start)} – ${formatTime12(item.end)}`;
+    time.textContent = `${formatClock(item.start)} – ${formatClock(item.end)}`;
 
     row.append(name, time);
     fragment.append(row);
@@ -501,6 +528,21 @@ elements.scheduleToggle.addEventListener("click", () => {
 });
 
 elements.daySelector.addEventListener("change", () => renderSchedule(new Date(), true));
+
+function updateClockToggleLabel() {
+  setText(elements.clockToggle, clockFormat === "12" ? "Switch to 24-hour" : "Switch to 12-hour");
+  elements.clockToggle.setAttribute("aria-pressed", String(clockFormat === "24"));
+}
+
+elements.clockToggle.addEventListener("click", () => {
+  clockFormat = clockFormat === "12" ? "24" : "12";
+  saveClockFormat();
+  updateClockToggleLabel();
+  updateEverything();
+  renderSchedule(new Date(), true);
+});
+
+updateClockToggleLabel();
 
 function updateEverything() {
   const now = new Date();

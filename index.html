@@ -7,7 +7,8 @@
       name="description"
       content="View today's LHWHS schedule, current period, and lunch countdowns."
     />
-    <meta name="theme-color" content="#b3d4ef" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#b3d4ef" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#131f30" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -58,6 +59,10 @@
         </div>
 
         <div id="periodTimes" class="period-times">--</div>
+
+        <button id="clockToggle" class="clock-toggle" type="button" aria-pressed="false">
+          Switch to 24-hour
+        </button>
       </section>
 
       <!-- Lunch -->
