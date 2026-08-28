@@ -530,7 +530,7 @@ elements.scheduleToggle.addEventListener("click", () => {
 elements.daySelector.addEventListener("change", () => renderSchedule(new Date(), true));
 
 function updateClockToggleLabel() {
-  setText(elements.clockToggle, clockFormat === "12" ? "Switch to 24-hour" : "Switch to 12-hour");
+  setText(elements.clockToggle, clockFormat === "12" ? "24h" : "12h");
   elements.clockToggle.setAttribute("aria-pressed", String(clockFormat === "24"));
 }
 

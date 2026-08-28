@@ -313,6 +313,13 @@ body {
   border: 0;
 }
 
+.button-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
 @media (max-width: 650px) {
   .container {
     padding-top: 35px;

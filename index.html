@@ -60,9 +60,23 @@
 
         <div id="periodTimes" class="period-times">--</div>
 
-        <button id="clockToggle" class="clock-toggle" type="button" aria-pressed="false">
-          Switch to 24-hour
+        <div class="button-row">
+
+        <button
+          id="scheduleToggle"
+          class="schedule-button"
+          type="button"
+          aria-controls="schedulePanel"
+          aria-expanded="false"
+        >
+          Show Schedule
         </button>
+
+        <button id="clockToggle" class="clock-toggle" type="button" aria-pressed="false">
+          24h
+        </button>
+
+      </div>
       </section>
 
       <!-- Lunch -->
@@ -92,15 +106,7 @@
 
       <!-- Full schedule -->
       <section class="schedule-section">
-        <button
-          id="scheduleToggle"
-          class="schedule-button"
-          type="button"
-          aria-controls="schedulePanel"
-          aria-expanded="false"
-        >
-          Show Schedule
-        </button>
+        
 
         <div id="schedulePanel" class="schedule-panel hidden">
           <div class="schedule-header">
