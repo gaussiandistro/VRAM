@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Roboto Slab";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/roboto-slab-var.woff2") format("woff2");
+}
+
 :root {
   --background: #b3d4ef;
   --text: #111;

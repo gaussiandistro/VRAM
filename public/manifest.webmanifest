@@ -1,0 +1,25 @@
+{
+  "name": "VRAM (LHWHS Schedule Tracker)",
+  "short_name": "VRAM",
+  "description": "View today's LHWHS schedule, current period, and lunch countdowns.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#b3d4ef",
+  "theme_color": "#b3d4ef",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
