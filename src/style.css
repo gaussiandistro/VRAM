@@ -289,6 +289,18 @@ body {
   display: none !important;
 }
 
+.footer {
+  position: fixed;
+  right: 12px;
+  bottom: 8px;
+
+  font-size: 11px;
+  opacity: 0.4;
+  color: inherit;
+
+  user-select: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -329,6 +341,12 @@ body {
 
   .schedule-row {
     font-size: 16px;
+  }
+
+  .footer {
+    font-size: 9px;
+    right: 8px;
+    bottom: 6px;
   }
 }
 
