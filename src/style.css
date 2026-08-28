@@ -206,7 +206,6 @@ body {
 }
 
 .clock-toggle {
-  margin-top: 22px;
   padding: 8px 18px;
   border: 2px solid var(--border);
   border-radius: 999px;
