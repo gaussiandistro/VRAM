@@ -358,6 +358,8 @@ body {
     font-size: 9px;
   }
 
+}
+
 @media (prefers-reduced-motion: reduce) {
   .schedule-button,
   .clock-toggle {
