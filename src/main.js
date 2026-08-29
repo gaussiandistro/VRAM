@@ -165,6 +165,12 @@ const elements = {
   progressPercent: byId("progressPercent"),
   periodTimes: byId("periodTimes"),
   clockToggle: byId("clockToggle"),
+  devPanel: byId("devPanel"),
+  devDate: byId("devDate"),
+  devTime: byId("devTime"),
+  devApply: byId("devApply"),
+  devReset: byId("devReset"),
+  devStatus: byId("devStatus"),
   lunchSection: byId("lunchSection"),
   scheduleToggle: byId("scheduleToggle"),
   schedulePanel: byId("schedulePanel"),
@@ -186,7 +192,11 @@ const elements = {
 };
 
 const CLOCK_STORAGE_KEY = "vram-clock";
+const isDevelopment = import.meta.env.DEV;
 let clockFormat = "12";
+let simulatedNow = null;
+let simulatedAt = 0;
+let simulatedRealTime = 0;
 
 try {
   if (localStorage.getItem(CLOCK_STORAGE_KEY) === "24") {
@@ -231,6 +241,9 @@ const TRANSITION_TAG = "vram-transition";
 const STALE_WINDOW_SECONDS = 45;
 let notifSettings = loadNotifSettings();
 let lastNotifiedKey = "";
+let lastNotificationTime = 0;
+let lastNotificationSeconds = null;
+let lastNotificationDay = "";
 
 function notificationsSupported() {
   return "Notification" in window;
@@ -318,18 +331,30 @@ const NOTIF_TRANSITIONS = Object.fromEntries(
 );
 
 function checkNotifications(now) {
-  if (!notifSettings.enabled || document.hidden || notificationPermission() !== "granted") {
+  if (!notifSettings.enabled || notificationPermission() !== "granted") {
     return;
   }
 
   const todayType = getDayType(now);
+  const nowSeconds = secondsIntoDay(now);
+  const day = dateKey(now);
+
+  if (
+    day !== lastNotificationDay ||
+    (lastNotificationSeconds !== null && nowSeconds < lastNotificationSeconds - 2)
+  ) {
+    lastNotifiedKey = "";
+    lastNotificationTime = 0;
+  }
+
+  lastNotificationDay = day;
+  lastNotificationSeconds = nowSeconds;
+
   const transitions = todayType ? NOTIF_TRANSITIONS[todayType] : null;
 
   if (!transitions) {
     return;
   }
-
-  const nowSeconds = secondsIntoDay(now);
 
   for (const transition of transitions) {
     const key = `${todayType}:${transition.seconds}`;
@@ -342,14 +367,20 @@ function checkNotifications(now) {
         lastNotifiedKey !== `warn:${key}`
       ) {
         lastNotifiedKey = `warn:${key}`;
+        lastNotificationTime = Date.now();
         void showNotification(transition.title, transition.soon, UPCOMING_TAG);
       }
 
       break;
-		}
+    }
 
-    if (secondsLeft >= -STALE_WINDOW_SECONDS && lastNotifiedKey !== key) {
+    if (
+      secondsLeft >= -STALE_WINDOW_SECONDS &&
+      lastNotifiedKey !== key &&
+      Date.now() - lastNotificationTime > 1000
+    ) {
       lastNotifiedKey = key;
+      lastNotificationTime = Date.now();
 
       const isLunch = transition.title === "Lunch ended";
       if (isLunch ? notifSettings.lunchEnd : notifSettings.periodEnd) {
@@ -367,6 +398,76 @@ function setText(element, text) {
 
 function setHidden(element, hidden) {
   element.classList.toggle("hidden", hidden);
+}
+
+// pretty messy so far
+
+function currentDateTime() {
+  if (!simulatedNow) {
+    return new Date();
+  }
+
+  return new Date(simulatedNow.getTime() + (Date.now() - simulatedRealTime));
+}
+
+function toInputDate(date) {
+  return dateKey(date);
+}
+
+function toInputTime(date) {
+  return [date.getHours(), date.getMinutes(), date.getSeconds()]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+}
+
+function updateDevStatus() {
+  if (!isDevelopment) {
+    return;
+  }
+
+  setText(
+    elements.devStatus,
+    simulatedNow
+      ? `Simulating ${new Date(simulatedAt + (Date.now() - simulatedRealTime)).toLocaleString()}`
+      : "Using your computer's current time."
+  );
+}
+
+function applySimulatedTime() {
+  const value = `${elements.devDate.value}T${elements.devTime.value}`;
+  const parsed = new Date(value);
+
+  if (!elements.devDate.value || !elements.devTime.value || Number.isNaN(parsed.getTime())) {
+    setText(elements.devStatus, "Enter a valid date and time.");
+    return;
+  }
+
+  simulatedNow = parsed;
+  simulatedRealTime = Date.now();
+  simulatedAt = simulatedNow.getTime();
+  updateDevStatus();
+  updateEverything();
+  renderSchedule(currentDateTime(), true);
+}
+
+function resetSimulatedTime() {
+  simulatedNow = null;
+  simulatedAt = 0;
+  simulatedRealTime = 0;
+  elements.devDate.value = toInputDate(new Date());
+  elements.devTime.value = toInputTime(new Date());
+  updateDevStatus();
+  updateEverything();
+  renderSchedule(currentDateTime(), true);
+}
+if (isDevelopment) {
+  const realNow = new Date();
+  elements.devPanel.classList.remove("hidden");
+  elements.devDate.value = toInputDate(realNow);
+  elements.devTime.value = toInputTime(realNow);
+  elements.devApply.addEventListener("click", applySimulatedTime);
+  elements.devReset.addEventListener("click", resetSimulatedTime);
+  updateDevStatus();
 }
 
 /* Date/time helpers */
@@ -681,7 +782,7 @@ elements.scheduleToggle.addEventListener("click", () => {
   const shouldOpen = elements.schedulePanel.classList.contains("hidden");
 
   if (shouldOpen) {
-    renderSchedule(new Date(), true);
+    renderSchedule(currentDateTime(), true);
   }
 
   setHidden(elements.schedulePanel, !shouldOpen);
@@ -785,7 +886,7 @@ for (const [checkbox, settingKey] of [
 updateNotificationUI();
 
 function updateEverything() {
-  const now = new Date();
+  const now = currentDateTime();
   renderDayMessage(now);
   updateMainTracker(now);
   checkNotifications(now);
@@ -826,8 +927,22 @@ function queueNextUpdate() {
 updateEverything();
 queueNextUpdate();
 
-if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("/sw.js");
+
+      if (isDevelopment && "periodicSync" in registration) {
+        try {
+          await registration.periodicSync.register("vram-notifications", {
+            minInterval: 60_000,
+          });
+        } catch {
+          // Periodic sync could be unavailable
+        }
+      }
+    } catch {
+      // No error handling here
+    }
   });
 }

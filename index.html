@@ -36,6 +36,27 @@
         <h1 id="dayMessage">Loading schedule...</h1>
       </section>
 
+      <!-- Development time controls -->
+      <section id="devPanel" class="dev-panel hidden" aria-labelledby="devPanelTitle">
+        <h2 id="devPanelTitle">Development Time</h2>
+        <p>Simulate a date and time without changing your system clock.</p>
+        <div class="dev-controls">
+          <label>
+            Date
+            <input id="devDate" type="date" />
+          </label>
+          <label>
+            Time
+            <input id="devTime" type="time" step="1" />
+          </label>
+        </div>
+        <div class="dev-actions">
+          <button id="devApply" class="schedule-button" type="button">Apply simulated time</button>
+          <button id="devReset" class="clock-toggle" type="button">Use current time</button>
+        </div>
+        <div id="devStatus" class="dev-status" role="status"></div>
+      </section>
+
       <!-- Current period -->
       <section class="tracker">
         <div id="currentPeriod" class="current-period">--</div>
