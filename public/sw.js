@@ -1,62 +1,79 @@
-const CACHE_NAME = "vram-v1";
-const PRECACHE = [
-  "/",
-  "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-];
+const SCHEDULES = {
+  Blue: [
+    ["1st Period", "07:30", "09:00"],
+    ["5th Period", "10:45", "12:55"],
+    ["7th Period", "13:00", "14:30"],
+  ],
+  White: [
+    ["2nd Period", "07:30", "09:00"],
+    ["4th Period", "09:05", "10:40"],
+    ["6th Period", "10:45", "12:55"],
+    ["8th Period", "13:00", "14:30"],
+  ],
+  RAM: [
+    ["1st Period", "07:30", "08:20"],
+    ["2nd Period", "08:25", "09:15"],
+    ["4th Period", "09:20", "10:10"],
+    ["5th Period", "10:15", "11:05"],
+    ["6th Period", "11:10", "12:40"],
+    ["7th Period", "12:45", "13:35"],
+    ["8th Period", "13:40", "14:30"],
+  ],
+};
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
+const WEEK_PATTERN = { 1: "Blue", 2: "White", 3: "RAM", 4: "Blue", 5: "White" };
+const UPCOMING_SECONDS = 120;
+
+function secondsIntoDay(date) {
+  return date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
+}
+
+function getDayType(date) {
+  return WEEK_PATTERN[date.getDay()] || null;
+}
+
+function getTransitions(dayType) {
+  return SCHEDULES[dayType].flatMap(([name, start, end]) => {
+    const toSeconds = (value) => {
+      const [hours, minutes] = value.split(":").map(Number);
+      return hours * 3600 + minutes * 60;
+    };
+    return [
+      { seconds: toSeconds(start), title: "School starting", body: `${name} starts now.` },
+      { seconds: toSeconds(end), title: "Period ended", body: `${name} ended.` },
+    ];
+  });
+}
+
+async function checkBackgroundNotifications() {
+  const now = new Date();
+  const dayType = getDayType(now);
+  const settings = await self.registration.getNotifications({ tag: "vram-background" });
+
+  if (!dayType || settings.length) return;
+
+  const nowSeconds = secondsIntoDay(now);
+  const transition = getTransitions(dayType).find(
+    (item) => item.seconds - nowSeconds > 0 && item.seconds - nowSeconds <= UPCOMING_SECONDS
   );
+
+  if (transition) {
+    await self.registration.showNotification(transition.title, {
+      body: transition.body,
+      tag: "vram-background",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+    });
+  }
+}
+
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "vram-notifications") {
+    event.waitUntil(checkBackgroundNotifications());
+  }
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-
-  if (request.method !== "GET") {
-    return;
-	}
-
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
-          return response;
-        })
-        .catch(() => caches.match("/"))
-    );
-    return;
-	}
-
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response && response.status === 200 && response.type === "basic") {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-
-      return cached || network;
-    })
-  );
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(self.clients.openWindow("/"));
 });
