@@ -351,10 +351,14 @@ body {
   }
 
   .footer {
-    font-size: 9px;
-    right: 8px;
+    left: 50%;
+    right: auto;
     bottom: 6px;
-  }
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 90%;
+    text-align: center;
+    font-size: 9px;
 }
 
 @media (prefers-reduced-motion: reduce) {
