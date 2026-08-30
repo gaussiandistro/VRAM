@@ -982,7 +982,7 @@ function updateNotificationUI() {
     if (permission === "denied") {
       hint = "Notifications are blocked in your browser settings.";
     } else if (granted && notifSettings.enabled) {
-      hint = "Notifications only work reliably in Safari when installed as an app.";
+      hint = "Notifications only work in Safari; they are blocked on Chrome.";
     }
   
     setText(elements.notifHint, hint);
