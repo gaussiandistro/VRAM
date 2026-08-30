@@ -212,6 +212,14 @@ body {
   margin-top: 30px;
 }
 
+.notif-hint {
+  max-width: 460px;
+  margin: 6px auto 0;
+  font-size: 12px;
+  opacity: 0.65;
+  text-align: center;
+}
+
 .notif-section h2 {
   margin: 0 0 18px;
   text-align: center;

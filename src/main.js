@@ -976,16 +976,18 @@ function updateNotificationUI() {
         : "Enable Notifications"
   );
 
-  setText(
-    elements.notifHint,
-    permission === "denied"
-      ? "Blocked in browser settings."
-      : granted
-        ? notifSettings.enabled
-          ? "Alerts are on for this device."
-          : "Permission granted, turn on alerts below."
-        : "Get an alert for when a period ends."
-  );
+  if (elements.notifHint) {
+    let hint = "";
+  
+    if (permission === "denied") {
+      hint = "Notifications are blocked in your browser settings.";
+    } else if (granted && notifSettings.enabled) {
+      hint = "Notifications only work reliably in Safari when installed as an app.";
+    }
+  
+    setText(elements.notifHint, hint);
+    setHidden(elements.notifHint, !hint);
+  }
 
   setHidden(elements.notifOptions, !granted || !notifSettings.enabled);
 
