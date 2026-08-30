@@ -83,21 +83,31 @@
 
         <div class="button-row">
 
-        <button
-          id="scheduleToggle"
-          class="schedule-button"
-          type="button"
-          aria-controls="schedulePanel"
-          aria-expanded="false"
-        >
-          Show Schedule
-        </button>
-
-        <button id="clockToggle" class="clock-toggle" type="button" aria-pressed="false">
-          24h
-        </button>
-
-      </div>
+          <button
+            id="scheduleToggle"
+            class="schedule-button"
+            type="button"
+            aria-controls="schedulePanel"
+            aria-expanded="false"
+          >
+            Show Schedule
+          </button>
+        
+          <button
+            id="notifToggle"
+            class="clock-toggle"
+            type="button"
+            aria-pressed="false"
+          >
+            Enable Notifications
+          </button>
+        
+          <button id="clockToggle" class="clock-toggle" type="button" aria-pressed="false">
+            24h
+          </button>
+        
+        </div>
+        
       </section>
 
       <!-- Lunch -->
@@ -127,28 +137,19 @@
 
       <!-- Notifications -->
       <section id="notifSection" class="notif-section">
-        <h2>Notifications</h2>
-
-        <button id="notifToggle" class="schedule-button" type="button" aria-pressed="false">
-          Enable Notifications
-        </button>
-
-        <p id="notifHint" class="notif-hint">
-          Get an alert when a period ends. Requires permission and works best with the app
-          installed.
-        </p>
-
+        <p id="notifHint" class="notif-hint hidden"></p>
+      
         <div id="notifOptions" class="notif-options hidden">
           <label class="notif-option">
             <input id="notifPeriodEnd" type="checkbox" checked />
             <span>Notify when a period ends</span>
           </label>
-
+      
           <label class="notif-option">
             <input id="notifLunchEnd" type="checkbox" checked />
             <span>Notify when lunch ends</span>
           </label>
-
+      
           <label class="notif-option">
             <input id="notifUpcoming" type="checkbox" checked />
             <span>Also remind me 2 minutes before</span>
