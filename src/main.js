@@ -1,5 +1,9 @@
 import "./style.css";
 
+/* =========================================================
+   Schedule data
+   ========================================================= */
+
 const WEEK_PATTERN = {
   1: "Blue",
   2: "White",
@@ -8,7 +12,7 @@ const WEEK_PATTERN = {
   5: "White",
 };
 
-//(YYYY-MM-DD)
+// YYYY-MM-DD
 const DAY_EXCEPTIONS = {
   "2026-08-25": "Blue",
   "2026-08-26": "White",
@@ -33,7 +37,7 @@ const DAY_EXCEPTIONS = {
   "2026-12-17": "White",
 };
 
-//(YYYY-MM-DD)
+// YYYY-MM-DD
 const NO_SCHOOL_DATES = new Set([
   "2026-09-07",
   "2026-11-03",
@@ -153,7 +157,9 @@ const DISPLAY_SCHEDULES = Object.fromEntries(
   ])
 );
 
-/* DOM */
+/* =========================================================
+   DOM
+   ========================================================= */
 
 const byId = (id) => document.getElementById(id);
 
@@ -179,7 +185,7 @@ const elements = {
   daySelector: byId("daySelector"),
   notifSection: byId("notifSection"),
   notifToggle: byId("notifToggle"),
-  notifHint: byId("notifHint"),
+  notifHint: byId("notifHint"), // Optional: safe if removed from HTML
   notifOptions: byId("notifOptions"),
   notifPeriodEnd: byId("notifPeriodEnd"),
   notifLunchEnd: byId("notifLunchEnd"),
@@ -191,8 +197,25 @@ const elements = {
   },
 };
 
+function setText(element, text) {
+  if (element && element.textContent !== text) {
+    element.textContent = text;
+  }
+}
+
+function setHidden(element, hidden) {
+  if (element) {
+    element.classList.toggle("hidden", hidden);
+  }
+}
+
+/* =========================================================
+   Clock preference
+   ========================================================= */
+
 const CLOCK_STORAGE_KEY = "vram-clock";
 const isDevelopment = import.meta.env.DEV;
+
 let clockFormat = "12";
 let simulatedNow = null;
 let simulatedAt = 0;
@@ -203,27 +226,42 @@ try {
     clockFormat = "24";
   }
 } catch {
-  // no error handling here
+  // Storage unavailable
 }
 
 function saveClockFormat() {
   try {
     localStorage.setItem(CLOCK_STORAGE_KEY, clockFormat);
   } catch {
-    // no error handling here
+    // Storage unavailable
   }
 }
 
-/* Notification settings */
+/* =========================================================
+   Notification settings
+   ========================================================= */
 
 const NOTIF_STORAGE_KEY = "vram-notifs";
-const DEFAULT_NOTIF_SETTINGS = { enabled: false, periodEnd: true, lunchEnd: true, upcoming: true };
+const DEFAULT_NOTIF_SETTINGS = {
+  enabled: false,
+  periodEnd: true,
+  lunchEnd: true,
+  upcoming: true,
+};
+
 const UPCOMING_WARN_SECONDS = 120;
-const UPCOMING_TAG = "vram-upcoming";
+const STALE_WINDOW_SECONDS = 45;
+
+let notifSettings = loadNotifSettings();
+let lastNotifiedKey = "";
+let lastNotificationTime = 0;
+let lastNotificationSeconds = null;
+let lastNotificationDay = "";
 
 function loadNotifSettings() {
   try {
-    return { ...DEFAULT_NOTIF_SETTINGS, ...JSON.parse(localStorage.getItem(NOTIF_STORAGE_KEY)) };
+    const saved = JSON.parse(localStorage.getItem(NOTIF_STORAGE_KEY));
+    return { ...DEFAULT_NOTIF_SETTINGS, ...(saved || {}) };
   } catch {
     return { ...DEFAULT_NOTIF_SETTINGS };
   }
@@ -235,15 +273,9 @@ function saveNotifSettings() {
   } catch {
     // Storage unavailable
   }
-}
 
-const TRANSITION_TAG = "vram-transition";
-const STALE_WINDOW_SECONDS = 45;
-let notifSettings = loadNotifSettings();
-let lastNotifiedKey = "";
-let lastNotificationTime = 0;
-let lastNotificationSeconds = null;
-let lastNotificationDay = "";
+  void syncNotifSettingsToServiceWorker();
+}
 
 function notificationsSupported() {
   return "Notification" in window;
@@ -253,31 +285,74 @@ function notificationPermission() {
   return notificationsSupported() ? Notification.permission : "denied";
 }
 
-async function showNotification(title, body, tag) {
+async function getServiceWorkerRegistration() {
+  if (!("serviceWorker" in navigator)) {
+    return null;
+  }
+
+  try {
+    return await navigator.serviceWorker.getRegistration();
+  } catch {
+    return null;
+  }
+}
+
+async function syncNotifSettingsToServiceWorker() {
+  const registration = await getServiceWorkerRegistration();
+
+  registration?.active?.postMessage({
+    type: "VRAM_NOTIFICATION_SETTINGS",
+    settings: notifSettings,
+  });
+}
+
+async function markNotificationInServiceWorker(key) {
+  if (!key) {
+    return;
+  }
+
+  const registration = await getServiceWorkerRegistration();
+
+  registration?.active?.postMessage({
+    type: "VRAM_MARK_NOTIFICATION",
+    key,
+  });
+}
+
+async function showNotification(title, body, tag, key = "") {
   if (notificationPermission() !== "granted") {
     return;
   }
 
-  const options = { body, tag, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png" };
+  const options = {
+    body,
+    tag,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+  };
 
   try {
-    if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.getRegistration();
+    const registration = await getServiceWorkerRegistration();
 
-      if (registration) {
-        await registration.showNotification(title, options);
-        return;
-      }
+    if (registration) {
+      await registration.showNotification(title, options);
+      await markNotificationInServiceWorker(key);
+      return;
     }
 
     const notification = new Notification(title, options);
+
     notification.addEventListener("click", () => {
       window.focus();
       notification.close();
     });
   } catch {
-    // No handling here
+    // Notification failed
   }
+}
+
+function notificationTag(day, kind, dayType, seconds) {
+  return `vram-${day}-${kind}-${dayType}-${seconds}`;
 }
 
 const NOTIF_TRANSITIONS = Object.fromEntries(
@@ -287,6 +362,7 @@ const NOTIF_TRANSITIONS = Object.fromEntries(
     const first = schedule[0];
 
     transitions.push({
+      type: "period",
       seconds: first.startSeconds,
       title: "School starting",
       body: `First block: ${first.name}.`,
@@ -303,6 +379,7 @@ const NOTIF_TRANSITIONS = Object.fromEntries(
       );
 
       transitions.push({
+        type: "period",
         seconds: period.endSeconds,
         title: "Period ended",
         body: next
@@ -313,11 +390,14 @@ const NOTIF_TRANSITIONS = Object.fromEntries(
     }
 
     for (const lunch of LUNCHES[dayType] || []) {
+      // Preserve the original behavior: avoid a duplicate notification
+      // when lunch and a period end at exactly the same second.
       if (transitions.some((item) => item.seconds === lunch.endSeconds)) {
         continue;
       }
 
       transitions.push({
+        type: "lunch",
         seconds: lunch.endSeconds,
         title: "Lunch ended",
         body: `${lunch.name} ended.`,
@@ -357,18 +437,26 @@ function checkNotifications(now) {
   }
 
   for (const transition of transitions) {
-    const key = `${todayType}:${transition.seconds}`;
+    const transitionKey = `${todayType}:${transition.type}:${transition.seconds}`;
     const secondsLeft = transition.seconds - nowSeconds;
 
     if (secondsLeft > 0) {
       if (
         notifSettings.upcoming &&
         secondsLeft <= UPCOMING_WARN_SECONDS &&
-        lastNotifiedKey !== `warn:${key}`
+        lastNotifiedKey !== `warn:${transitionKey}`
       ) {
-        lastNotifiedKey = `warn:${key}`;
+        const key = `${day}:upcoming:${transitionKey}`;
+
+        lastNotifiedKey = `warn:${transitionKey}`;
         lastNotificationTime = Date.now();
-        void showNotification(transition.title, transition.soon, UPCOMING_TAG);
+
+        void showNotification(
+          transition.title,
+          transition.soon,
+          notificationTag(day, "upcoming", todayType, transition.seconds),
+          key
+        );
       }
 
       break;
@@ -376,31 +464,32 @@ function checkNotifications(now) {
 
     if (
       secondsLeft >= -STALE_WINDOW_SECONDS &&
-      lastNotifiedKey !== key &&
+      lastNotifiedKey !== transitionKey &&
       Date.now() - lastNotificationTime > 1000
     ) {
-      lastNotifiedKey = key;
+      const allowed =
+        transition.type === "lunch" ? notifSettings.lunchEnd : notifSettings.periodEnd;
+
+      lastNotifiedKey = transitionKey;
       lastNotificationTime = Date.now();
 
-      const isLunch = transition.title === "Lunch ended";
-      if (isLunch ? notifSettings.lunchEnd : notifSettings.periodEnd) {
-        void showNotification(transition.title, transition.body, TRANSITION_TAG);
+      if (allowed) {
+        const key = `${day}:end:${transitionKey}`;
+
+        void showNotification(
+          transition.title,
+          transition.body,
+          notificationTag(day, "end", todayType, transition.seconds),
+          key
+        );
       }
     }
   }
 }
 
-function setText(element, text) {
-  if (element.textContent !== text) {
-    element.textContent = text;
-  }
-}
-
-function setHidden(element, hidden) {
-  element.classList.toggle("hidden", hidden);
-}
-
-// pretty messy so far
+/* =========================================================
+   Development time controls
+   ========================================================= */
 
 function currentDateTime() {
   if (!simulatedNow) {
@@ -421,7 +510,7 @@ function toInputTime(date) {
 }
 
 function updateDevStatus() {
-  if (!isDevelopment) {
+  if (!isDevelopment || !elements.devStatus) {
     return;
   }
 
@@ -434,6 +523,10 @@ function updateDevStatus() {
 }
 
 function applySimulatedTime() {
+  if (!elements.devDate || !elements.devTime || !elements.devStatus) {
+    return;
+  }
+
   const value = `${elements.devDate.value}T${elements.devTime.value}`;
   const parsed = new Date(value);
 
@@ -445,6 +538,7 @@ function applySimulatedTime() {
   simulatedNow = parsed;
   simulatedRealTime = Date.now();
   simulatedAt = simulatedNow.getTime();
+
   updateDevStatus();
   updateEverything();
   renderSchedule(currentDateTime(), true);
@@ -454,23 +548,42 @@ function resetSimulatedTime() {
   simulatedNow = null;
   simulatedAt = 0;
   simulatedRealTime = 0;
-  elements.devDate.value = toInputDate(new Date());
-  elements.devTime.value = toInputTime(new Date());
+
+  if (elements.devDate) {
+    elements.devDate.value = toInputDate(new Date());
+  }
+
+  if (elements.devTime) {
+    elements.devTime.value = toInputTime(new Date());
+  }
+
   updateDevStatus();
   updateEverything();
   renderSchedule(currentDateTime(), true);
 }
-if (isDevelopment) {
+
+if (isDevelopment && elements.devPanel) {
   const realNow = new Date();
+
   elements.devPanel.classList.remove("hidden");
-  elements.devDate.value = toInputDate(realNow);
-  elements.devTime.value = toInputTime(realNow);
-  elements.devApply.addEventListener("click", applySimulatedTime);
-  elements.devReset.addEventListener("click", resetSimulatedTime);
+
+  if (elements.devDate) {
+    elements.devDate.value = toInputDate(realNow);
+  }
+
+  if (elements.devTime) {
+    elements.devTime.value = toInputTime(realNow);
+  }
+
+  elements.devApply?.addEventListener("click", applySimulatedTime);
+  elements.devReset?.addEventListener("click", resetSimulatedTime);
+
   updateDevStatus();
 }
 
-/* Date/time helpers */
+/* =========================================================
+   Date/time helpers
+   ========================================================= */
 
 function dateKey(date) {
   const year = date.getFullYear();
@@ -516,10 +629,13 @@ function formatShortDuration(seconds) {
   const totalSeconds = Math.ceil(Math.max(0, seconds));
   const minutes = Math.floor(totalSeconds / 60);
   const remainingSeconds = totalSeconds % 60;
+
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
-/* School day logic */
+/* =========================================================
+   School day logic
+   ========================================================= */
 
 function getDayType(date) {
   const key = dateKey(date);
@@ -553,7 +669,9 @@ function getDisplayDayInfo(now) {
   return { date: next, type: getDayType(next), relation: "next" };
 }
 
-/*  Period logic  */
+/* =========================================================
+   Period logic
+   ========================================================= */
 
 function getCurrentPeriod(dayType, nowSeconds) {
   return (
@@ -567,7 +685,9 @@ function getNextPeriod(dayType, nowSeconds) {
   return SCHEDULES[dayType]?.find((period) => period.startSeconds > nowSeconds) || null;
 }
 
-/*  Renders  */
+/* =========================================================
+   Rendering
+   ========================================================= */
 
 let lastDayMessageKey = "";
 let lastProgressDegrees;
@@ -594,15 +714,16 @@ function renderDayMessage(now) {
   const dayType = document.createElement("span");
   dayType.className = DAY_CLASS[info.type] || "";
   dayType.textContent = info.type;
+
   const article = info.type === "ER White" ? "an" : "a";
 
   if (info.relation === "today") {
-    elements.dayMessage.replaceChildren(`Today is ${article} `, dayType, " Day.");
+    elements.dayMessage?.replaceChildren(`Today is ${article} `, dayType, " Day.");
     return;
   }
 
   const weekday = info.date.toLocaleDateString("en-US", { weekday: "long" });
-  elements.dayMessage.replaceChildren(`${weekday} will be ${article} `, dayType, " Day.");
+  elements.dayMessage?.replaceChildren(`${weekday} will be ${article} `, dayType, " Day.");
 }
 
 function setProgress(progress) {
@@ -610,13 +731,13 @@ function setProgress(progress) {
   const percent = Math.round(normalized * 100);
   const degrees = Math.round(normalized * 36000) / 100;
 
-  if (degrees !== lastProgressDegrees) {
+  if (degrees !== lastProgressDegrees && elements.progressRing) {
     elements.progressRing.style.setProperty("--progress", `${degrees}deg`);
     lastProgressDegrees = degrees;
   }
 
   if (percent !== lastProgressPercent) {
-    elements.progressRing.setAttribute("aria-valuenow", String(percent));
+    elements.progressRing?.setAttribute("aria-valuenow", String(percent));
     setText(elements.progressPercent, `${percent}%`);
     lastProgressPercent = percent;
   }
@@ -630,8 +751,13 @@ function updateLunch(dayType, currentPeriod, nowSeconds) {
     return;
   }
 
-  for (const lunch of LUNCHES[dayType]) {
+  for (const lunch of LUNCHES[dayType] || []) {
     const lunchElements = elements.lunches[lunch.id];
+
+    if (!lunchElements) {
+      continue;
+    }
+
     let time;
     let status;
 
@@ -705,6 +831,10 @@ function updateMainTracker(now) {
 }
 
 function selectedScheduleType(now) {
+  if (!elements.daySelector) {
+    return getDisplayDayInfo(now).type;
+  }
+
   return elements.daySelector.value === "auto"
     ? getDisplayDayInfo(now).type
     : elements.daySelector.value;
@@ -712,7 +842,9 @@ function selectedScheduleType(now) {
 
 function updateScheduleHighlight(dayType, now) {
   const currentId =
-    getDayType(now) === dayType ? getCurrentPeriod(dayType, secondsIntoDay(now))?.id : undefined;
+    getDayType(now) === dayType
+      ? getCurrentPeriod(dayType, secondsIntoDay(now))?.id
+      : undefined;
 
   if (currentId === highlightedPeriodId) {
     return;
@@ -730,6 +862,10 @@ function updateScheduleHighlight(dayType, now) {
 }
 
 function renderSchedule(now, force = false) {
+  if (!elements.scheduleList || !elements.scheduleTitle) {
+    return;
+  }
+
   const dayType = selectedScheduleType(now);
 
   if (!force && dayType === renderedScheduleType) {
@@ -776,50 +912,61 @@ function renderSchedule(now, force = false) {
   updateScheduleHighlight(dayType, now);
 }
 
-/*  UI events  */
+/* =========================================================
+   UI events
+   ========================================================= */
 
-elements.scheduleToggle.addEventListener("click", () => {
-  const shouldOpen = elements.schedulePanel.classList.contains("hidden");
+elements.scheduleToggle?.addEventListener("click", () => {
+  const shouldOpen = elements.schedulePanel?.classList.contains("hidden") ?? false;
 
   if (shouldOpen) {
     renderSchedule(currentDateTime(), true);
   }
 
   setHidden(elements.schedulePanel, !shouldOpen);
-  elements.scheduleToggle.setAttribute("aria-expanded", String(shouldOpen));
+  elements.scheduleToggle?.setAttribute("aria-expanded", String(shouldOpen));
   setText(elements.scheduleToggle, shouldOpen ? "Hide Schedule" : "Show Schedule");
 });
 
-elements.daySelector.addEventListener("change", () => renderSchedule(new Date(), true));
+elements.daySelector?.addEventListener("change", () => {
+  renderSchedule(currentDateTime(), true);
+});
 
 function updateClockToggleLabel() {
   setText(elements.clockToggle, clockFormat === "12" ? "24h" : "12h");
-  elements.clockToggle.setAttribute("aria-pressed", String(clockFormat === "24"));
+  elements.clockToggle?.setAttribute("aria-pressed", String(clockFormat === "24"));
 }
 
-elements.clockToggle.addEventListener("click", () => {
+elements.clockToggle?.addEventListener("click", () => {
   clockFormat = clockFormat === "12" ? "24" : "12";
   saveClockFormat();
   updateClockToggleLabel();
   updateEverything();
-  renderSchedule(new Date(), true);
+  renderSchedule(currentDateTime(), true);
 });
 
 updateClockToggleLabel();
 
 function updateNotificationUI() {
-  const permission = notificationPermission();
   const unsupported = !notificationsSupported();
+  const permission = notificationPermission();
   const granted = permission === "granted";
 
-  elements.notifSection.classList.toggle("hidden", unsupported);
+  setHidden(elements.notifToggle, unsupported);
+  setHidden(elements.notifSection, unsupported);
 
   if (unsupported) {
     return;
   }
 
-  elements.notifToggle.disabled = permission === "denied";
-  elements.notifToggle.setAttribute("aria-pressed", String(granted && notifSettings.enabled));
+  if (elements.notifToggle) {
+    elements.notifToggle.disabled = permission === "denied";
+    elements.notifToggle.setAttribute(
+      "aria-pressed",
+      String(granted && notifSettings.enabled)
+    );
+  }
+
   setText(
     elements.notifToggle,
     permission === "denied"
@@ -828,6 +975,7 @@ function updateNotificationUI() {
         ? "Disable Notifications"
         : "Enable Notifications"
   );
+
   setText(
     elements.notifHint,
     permission === "denied"
@@ -836,15 +984,25 @@ function updateNotificationUI() {
         ? notifSettings.enabled
           ? "Alerts are on for this device."
           : "Permission granted, turn on alerts below."
-        : "Get an alert for when period ends."
+        : "Get an alert for when a period ends."
   );
+
   setHidden(elements.notifOptions, !granted || !notifSettings.enabled);
-  elements.notifPeriodEnd.checked = notifSettings.periodEnd;
-  elements.notifLunchEnd.checked = notifSettings.lunchEnd;
-  elements.notifUpcoming.checked = notifSettings.upcoming;
+
+  if (elements.notifPeriodEnd) {
+    elements.notifPeriodEnd.checked = notifSettings.periodEnd;
+  }
+
+  if (elements.notifLunchEnd) {
+    elements.notifLunchEnd.checked = notifSettings.lunchEnd;
+  }
+
+  if (elements.notifUpcoming) {
+    elements.notifUpcoming.checked = notifSettings.upcoming;
+  }
 }
 
-elements.notifToggle.addEventListener("click", async () => {
+elements.notifToggle?.addEventListener("click", async () => {
   if (notifSettings.enabled) {
     notifSettings.enabled = false;
     saveNotifSettings();
@@ -876,7 +1034,7 @@ for (const [checkbox, settingKey] of [
   [elements.notifLunchEnd, "lunchEnd"],
   [elements.notifUpcoming, "upcoming"],
 ]) {
-  checkbox.addEventListener("change", () => {
+  checkbox?.addEventListener("change", () => {
     notifSettings[settingKey] = checkbox.checked;
     saveNotifSettings();
     updateNotificationUI();
@@ -885,30 +1043,23 @@ for (const [checkbox, settingKey] of [
 
 updateNotificationUI();
 
+/* =========================================================
+   Main update loop
+   ========================================================= */
+
 function updateEverything() {
   const now = currentDateTime();
+
   renderDayMessage(now);
   updateMainTracker(now);
   checkNotifications(now);
 
-  if (!elements.schedulePanel.classList.contains("hidden")) {
+  if (elements.schedulePanel && !elements.schedulePanel.classList.contains("hidden")) {
     renderSchedule(now);
   }
 }
 
 let updateTimer;
-
-document.addEventListener("visibilitychange", () => {
-  clearTimeout(updateTimer);
-
-  if (document.hidden) {
-    updateTimer = undefined;
-    return;
-  }
-
-  updateEverything();
-  queueNextUpdate();
-});
 
 function queueNextUpdate() {
   if (document.hidden) {
@@ -924,25 +1075,63 @@ function queueNextUpdate() {
   }, delay);
 }
 
+document.addEventListener("visibilitychange", () => {
+  clearTimeout(updateTimer);
+
+  if (document.hidden) {
+    updateTimer = undefined;
+    return;
+  }
+
+  updateEverything();
+  queueNextUpdate();
+});
+
+window.addEventListener("focus", () => {
+  if (!document.hidden) {
+    updateEverything();
+  }
+});
+
 updateEverything();
 queueNextUpdate();
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async () => {
-    try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
+/* =========================================================
+   Service worker / background notifications
+   ========================================================= */
 
-      if (isDevelopment && "periodicSync" in registration) {
-        try {
-          await registration.periodicSync.register("vram-notifications", {
-            minInterval: 60_000,
-          });
-        } catch {
-          // Periodic sync could be unavailable
-        }
+async function registerBackgroundNotifications() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.register("/sw.js");
+
+    await navigator.serviceWorker.ready;
+    await syncNotifSettingsToServiceWorker();
+
+    if ("periodicSync" in registration) {
+      try {
+        await registration.periodicSync.register("vram-notifications", {
+          minInterval: 60_000,
+        });
+      } catch {
+        // Periodic Background Sync may be unavailable, blocked,
+        // or limited to installed/engaged PWAs.
       }
-    } catch {
-      // No error handling here
     }
+  } catch {
+    // Service worker registration failed
+  }
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    void registerBackgroundNotifications();
+  });
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    void syncNotifSettingsToServiceWorker();
   });
 }
