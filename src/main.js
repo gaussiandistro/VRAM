@@ -980,7 +980,7 @@ function updateNotificationUI() {
     let hint = "";
   
     if (permission === "denied") {
-      hint = "Notifications only work in Safari; they are blocked on Chrome. \n The tab must be active for notifications to pop up, but you can use another app while Safari is open in the background as long as the tab is active.";
+      hint = "Notifications only work in Safari; they are blocked on Chrome.";
     } else if (granted && notifSettings.enabled) {
       hint = "Notifications only work in Safari; they are blocked on Chrome. \n The tab must be active for notifications to pop up, but you can use another app while Safari is open in the background as long as the tab is active.";
     }
