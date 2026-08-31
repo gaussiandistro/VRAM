@@ -416,7 +416,7 @@ body {
   font-size: 11px;
   opacity: 0.4;
   color: inherit;
-
+  z-index: 1;
   user-select: none;
 }
 
