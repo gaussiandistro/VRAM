@@ -422,6 +422,7 @@ body {
   color: inherit;
   z-index: 1; /* Lower value keeps it beneath dropdowns */
   user-select: none;
+  text-align: right;
 }
 
 
