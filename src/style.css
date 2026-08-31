@@ -66,6 +66,7 @@ body {
 .tracker,
 .schedule-section,
 .dev-panel {
+  position: relative;
   text-align: center;
 }
 
@@ -410,7 +411,7 @@ body {
 }
 
 .footer {
-  position: fixed;
+  position: relative;
   right: 12px;
   bottom: 8px;
 
