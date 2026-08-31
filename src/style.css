@@ -411,16 +411,18 @@ body {
 }
 
 .footer {
-  position: relative;
+  position: fixed;
   right: 12px;
   bottom: 8px;
 
   font-size: 11px;
   opacity: 0.4;
   color: inherit;
-  z-index: 10;
+  z-index: -1; /* Lower value keeps it beneath dropdowns */
   user-select: none;
 }
+
+
 
 .visually-hidden {
   position: absolute;
