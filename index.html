@@ -82,7 +82,6 @@
         <div id="periodTimes" class="period-times">--</div>
 
         <div class="button-row">
-
           <button
             id="scheduleToggle"
             class="schedule-button"
@@ -92,22 +91,15 @@
           >
             Show Schedule
           </button>
-        
-          <button
-            id="notifToggle"
-            class="clock-toggle"
-            type="button"
-            aria-pressed="false"
-          >
+
+          <button id="notifToggle" class="clock-toggle" type="button" aria-pressed="false">
             Enable Notifications
           </button>
-        
+
           <button id="clockToggle" class="clock-toggle" type="button" aria-pressed="false">
             24h
           </button>
-        
         </div>
-        
       </section>
 
       <!-- Lunch -->
@@ -138,18 +130,18 @@
       <!-- Notifications -->
       <section id="notifSection" class="notif-section">
         <p id="notifHint" class="notif-hint hidden"></p>
-      
+
         <div id="notifOptions" class="notif-options hidden">
           <label class="notif-option">
             <input id="notifPeriodEnd" type="checkbox" checked />
             <span>Notify when a period ends</span>
           </label>
-      
+
           <label class="notif-option">
             <input id="notifLunchEnd" type="checkbox" checked />
             <span>Notify when lunch ends</span>
           </label>
-      
+
           <label class="notif-option">
             <input id="notifUpcoming" type="checkbox" checked />
             <span>Also remind me 2 minutes before</span>
@@ -159,8 +151,6 @@
 
       <!-- Full schedule -->
       <section class="schedule-section">
-        
-
         <div id="schedulePanel" class="schedule-panel hidden">
           <div class="schedule-header">
             <h2 id="scheduleTitle">Schedule</h2>
@@ -173,21 +163,25 @@
               <option value="RAM">RAM Day</option>
               <option value="ER White">ER White Day</option>
             </select>
-            
           </div>
 
           <div id="scheduleList"></div>
-          
-          
         </div>
       </section>
     </main>
 
     <footer class="footer">
-    <p>
-      © 2026 VRAM. Inspired by but not affiliated with RamWatch. <br>Have feedback, feature requests, or a bug to report? Leave feedback 
-    <a href="https://forms.gle/ZAy86V6og6b8UtVK7" target="_blank" rel="noopener noreferrer" class="feedback-link">here</a>.
-    </p>
+      <p>
+        © 2026 VRAM. Inspired by but not affiliated with RamWatch. <br />Have feedback, feature
+        requests, or a bug to report? Leave feedback
+        <a
+          href="https://forms.gle/ZAy86V6og6b8UtVK7"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="feedback-link"
+          >here</a
+        >.
+      </p>
     </footer>
 
     <script type="module" src="/src/main.js"></script>

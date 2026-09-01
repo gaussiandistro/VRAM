@@ -425,8 +425,6 @@ body {
   text-align: right;
 }
 
-
-
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -488,7 +486,6 @@ body {
     text-align: center;
     font-size: 9px;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {

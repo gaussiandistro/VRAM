@@ -842,9 +842,7 @@ function selectedScheduleType(now) {
 
 function updateScheduleHighlight(dayType, now) {
   const currentId =
-    getDayType(now) === dayType
-      ? getCurrentPeriod(dayType, secondsIntoDay(now))?.id
-      : undefined;
+    getDayType(now) === dayType ? getCurrentPeriod(dayType, secondsIntoDay(now))?.id : undefined;
 
   if (currentId === highlightedPeriodId) {
     return;
@@ -961,10 +959,7 @@ function updateNotificationUI() {
 
   if (elements.notifToggle) {
     elements.notifToggle.disabled = permission === "denied";
-    elements.notifToggle.setAttribute(
-      "aria-pressed",
-      String(granted && notifSettings.enabled)
-    );
+    elements.notifToggle.setAttribute("aria-pressed", String(granted && notifSettings.enabled));
   }
 
   setText(
@@ -978,13 +973,14 @@ function updateNotificationUI() {
 
   if (elements.notifHint) {
     let hint = "";
-  
+
     if (permission === "denied") {
       hint = "Notifications only work in Safari; they are blocked on Chrome.";
     } else if (granted && notifSettings.enabled) {
-      hint = "Notifications only work in Safari; they are blocked on Chrome. \n The tab must be active for notifications to pop up, but you may use another app while Safari is open in the background.";
+      hint =
+        "Notifications only work in Safari; they are blocked on Chrome. \n The tab must be active for notifications to pop up, but you may use another app while Safari is open in the background.";
     }
-  
+
     setText(elements.notifHint, hint);
     setHidden(elements.notifHint, !hint);
   }
