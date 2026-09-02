@@ -643,7 +643,7 @@ void loadScheduleData().catch(() => {});
 void (async () => {
   if (!("serviceWorker" in navigator)) return;
   try {
-    await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
     await navigator.serviceWorker.ready;
     await restorePushSubscription();
   } catch {

@@ -1,4 +1,4 @@
-const APP_URL = "/";
+const APP_URL = self.registration?.scope || "/";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -23,8 +23,8 @@ self.addEventListener("push", (event) => {
       const options = {
         body: payload.body || "You have a schedule notification.",
         tag: payload.tag || undefined,
-        icon: "/icons/icon-192.png",
-        badge: "/icons/icon-192.png",
+        icon: new URL("icons/icon-192.png", self.registration.scope).toString(),
+        badge: new URL("icons/icon-192.png", self.registration.scope).toString(),
         data: { url: payload.url || APP_URL },
       };
 
