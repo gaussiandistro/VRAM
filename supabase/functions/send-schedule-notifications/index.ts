@@ -14,7 +14,7 @@ const vapidSubject = requiredEnv("VAPID_SUBJECT");
 const vapidPublicKey = requiredEnv("VAPID_PUBLIC_KEY");
 const vapidPrivateKey = requiredEnv("VAPID_PRIVATE_KEY");
 const schedulerSecret = requiredEnv("SCHEDULER_SECRET");
-const schoolTimezone = Deno.env.get("SCHOOL_TIMEZONE") ?? "America/New_York";
+const schoolTimezone = Deno.env.get("SCHOOL_TIMEZONE") ?? "America/Chicago";
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
