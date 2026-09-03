@@ -13,7 +13,7 @@ const serviceRoleKey =
 const vapidSubject = requiredEnv("VAPID_SUBJECT");
 const vapidPublicKey = requiredEnv("VAPID_PUBLIC_KEY");
 const vapidPrivateKey = requiredEnv("VAPID_PRIVATE_KEY");
-const schedulerSecret = requiredEnv("SCHEDULER_SECRET");
+const cronSecret = requiredEnv("CRON_SECRET");
 const schoolTimezone = Deno.env.get("SCHOOL_TIMEZONE") ?? "America/Chicago";
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -238,7 +238,7 @@ Deno.serve(async (request) => {
     return json({ error: "Method not allowed" }, 405);
   }
 
-  if (request.headers.get("x-scheduler-secret") !== schedulerSecret) {
+  if (request.headers.get("x-cron-secret") !== cronSecret) {
     return json({ error: "Unauthorized" }, 401);
   }
 
