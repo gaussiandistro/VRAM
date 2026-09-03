@@ -86,6 +86,13 @@ function setText(element, text) {
   if (element && element.textContent !== text) element.textContent = text;
 }
 
+function logError(message, error) {
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.error(message, error);
+  }
+}
+
 function setHidden(element, hidden) {
   element?.classList.toggle("hidden", hidden);
 }
@@ -140,8 +147,9 @@ function saveNotifSettings() {
     // Storage unavailable.
   }
 
-  void syncNotificationPreferences().catch(() => {
+  void syncNotificationPreferences().catch((error) => {
     // The subscription may not exist yet.
+    logError("Failed to sync notification preferences.", error);
   });
 }
 
@@ -228,7 +236,11 @@ async function savePushSubscription(subscription = null) {
     p_auth: keys.auth,
   });
 
-  if (error) throw error;
+  if (error) {
+    logError("Failed to save push subscription.", error);
+    throw error;
+  }
+
   notificationSubscriptionId = data;
   await syncNotificationPreferences();
 }
@@ -636,7 +648,8 @@ elements.notifToggle?.addEventListener("click", async () => {
   if (notificationPermission() !== "granted") {
     try {
       if ((await Notification.requestPermission()) !== "granted") return updateNotificationUI();
-    } catch {
+    } catch (error) {
+      logError("Failed to request notification permission.", error);
       return updateNotificationUI();
     }
   }
@@ -646,7 +659,8 @@ elements.notifToggle?.addEventListener("click", async () => {
     notifSettings.enabled = true;
     saveNotifSettings();
     updateNotificationUI();
-  } catch {
+  } catch (error) {
+    logError("Failed to enable notifications.", error);
     notifSettings.enabled = false;
     updateNotificationUI();
   }
@@ -756,10 +770,7 @@ updateNotificationUI();
 
 void loadScheduleData()
   .catch((error) => {
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to load schedule data.", error);
-    }
+    logError("Failed to load schedule data.", error);
   })
   .finally(() => {
     updateEverything();
@@ -773,7 +784,7 @@ void (async () => {
     await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
     await navigator.serviceWorker.ready;
     await restorePushSubscription();
-  } catch {
-    // Service workers or push subscriptions are unavailable in this environment.
+  } catch (error) {
+    logError("Service worker / push subscription setup failed.", error);
   }
 })();
