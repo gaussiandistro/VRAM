@@ -233,6 +233,46 @@ async function sendPush(subscription: Subscription, payload: unknown) {
   );
 }
 
+async function sendTestNotification() {
+  const { data: subscriptions, error } = await supabase
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth, enabled")
+    .eq("enabled", true);
+
+  if (error) {
+    throw error;
+  }
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const subscription of (subscriptions ?? []) as Subscription[]) {
+    try {
+      await sendPush(subscription, {
+        title: "VRAM test notification",
+        body: "Push notifications are working!",
+        tag: "vram-test-notification",
+        url: "/",
+      });
+      sent += 1;
+    } catch (error) {
+      failed += 1;
+      console.error(`Test notification failed for subscription ${subscription.id}:`, error);
+
+      if (isExpiredSubscriptionError(error)) {
+        await disableSubscription(subscription.id);
+      }
+    }
+  }
+
+  return json({
+    test: true,
+    sent,
+    failed,
+    subscriptions: subscriptions?.length ?? 0,
+  });
+}
+
 Deno.serve(async (request) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
@@ -243,6 +283,18 @@ Deno.serve(async (request) => {
   }
 
   try {
+    let body: { test?: boolean } = {};
+
+    try {
+      body = await request.json();
+    } catch {
+      // The scheduled request may have an empty or malformed body; treat it as a normal run.
+    }
+
+    if (body.test === true) {
+      return await sendTestNotification();
+    }
+
     const now = new Date();
     const today = dateKey(now);
     const nowSeconds = secondsIntoSchoolDay(now);
