@@ -20,16 +20,6 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 
 webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
-const WEEKLY_SCHEDULE: Record<number, string | null> = {
-  0: null,
-  1: "Blue",
-  2: "White",
-  3: "RAM",
-  4: "Blue",
-  5: "White",
-  6: null,
-};
-
 const UPCOMING_SECONDS = 120;
 const DELIVERY_WINDOW_SECONDS = 90;
 
@@ -130,7 +120,25 @@ async function getScheduleName(date: Date) {
     return schedule?.name ?? null;
   }
 
-  return WEEKLY_SCHEDULE[weekday(date)] ?? null;
+  return getDefaultScheduleName(date);
+}
+
+async function getDefaultScheduleName(date: Date) {
+  const { data, error } = await supabase
+    .from("schedule_defaults")
+    .select("schedule_type:schedule_types(name)")
+    .eq("weekday", weekday(date))
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  const schedule = Array.isArray(data?.schedule_type)
+    ? data!.schedule_type[0]
+    : data?.schedule_type;
+
+  return schedule?.name ?? null;
 }
 
 async function getBlocks(scheduleName: string) {

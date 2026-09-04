@@ -1,4 +1,4 @@
-truncate table public.calendar_dates, public.schedule_blocks, public.schedule_types cascade;
+truncate table public.calendar_dates, public.schedule_defaults, public.schedule_blocks, public.schedule_types cascade;
 
 insert into public.schedule_types (id, name, active, created_at) values
   ('43838f7f-747b-406b-9f82-bfefb5e2a105', 'Blue', TRUE, '2026-09-01T22:28:49.727262+00:00'),
@@ -52,6 +52,13 @@ insert into public.schedule_blocks (id, schedule_type_id, block_id, name, kind, 
   ('d2bab847-e121-4368-9fd1-6efde6dd55a8', 'd60f6ff1-1345-4715-8a7f-a1602ef27454', 'A', 'A Lunch', 'lunch', '10:45:00', '11:15:00', 100, '2026-09-01T22:29:17.545621+00:00'),
   ('0a8ccc5b-e89b-46c7-a70c-641a673e922e', 'd60f6ff1-1345-4715-8a7f-a1602ef27454', 'B', 'B Lunch', 'lunch', '11:35:00', '12:05:00', 101, '2026-09-01T22:29:17.545621+00:00'),
   ('90e83788-a73c-4693-b3a7-39583465974b', 'd60f6ff1-1345-4715-8a7f-a1602ef27454', 'C', 'C Lunch', 'lunch', '12:25:00', '12:55:00', 102, '2026-09-01T22:29:17.545621+00:00');
+
+insert into public.schedule_defaults (weekday, schedule_type_id) values
+  (1, '43838f7f-747b-406b-9f82-bfefb5e2a105'), -- Mon: Blue
+  (2, 'd60f6ff1-1345-4715-8a7f-a1602ef27454'), -- Tue: White
+  (3, '9d164d3a-0823-45da-adb5-2d60eea511fa'), -- Wed: RAM
+  (4, '43838f7f-747b-406b-9f82-bfefb5e2a105'), -- Thu: Blue
+  (5, 'd60f6ff1-1345-4715-8a7f-a1602ef27454'); -- Fri: White
 
 insert into public.calendar_dates (date, schedule_type_id, is_school_day, note, created_at) values
   ('2026-08-25', '43838f7f-747b-406b-9f82-bfefb5e2a105', TRUE, 'Schedule exception', '2026-09-01T22:29:34.001879+00:00'),

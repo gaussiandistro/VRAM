@@ -1,3 +1,6 @@
+
+
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -100,7 +103,7 @@ CREATE OR REPLACE FUNCTION "public"."upsert_push_subscription"("p_installation_i
     SET "search_path" TO 'public'
     AS $$
 declare
-  subscription_id uuid;
+  v_subscription_id uuid;
 begin
   insert into public.push_subscriptions (
     installation_id,
@@ -126,13 +129,13 @@ begin
     enabled = true,
     last_seen_at = now(),
     updated_at = now()
-  returning id into subscription_id;
+  returning id into v_subscription_id;
 
   insert into public.notification_preferences (subscription_id)
-  values (subscription_id)
+  values (v_subscription_id)
   on conflict (subscription_id) do nothing;
 
-  return subscription_id;
+  return v_subscription_id;
 end;
 $$;
 
@@ -219,6 +222,16 @@ CREATE TABLE IF NOT EXISTS "public"."schedule_blocks" (
 ALTER TABLE "public"."schedule_blocks" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."schedule_defaults" (
+    "weekday" integer NOT NULL,
+    "schedule_type_id" "uuid" NOT NULL,
+    CONSTRAINT "schedule_defaults_weekday_check" CHECK ((("weekday" >= 0) AND ("weekday" <= 6)))
+);
+
+
+ALTER TABLE "public"."schedule_defaults" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."schedule_types" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "name" "text" NOT NULL,
@@ -275,6 +288,11 @@ ALTER TABLE ONLY "public"."schedule_blocks"
 
 
 
+ALTER TABLE ONLY "public"."schedule_defaults"
+    ADD CONSTRAINT "schedule_defaults_pkey" PRIMARY KEY ("weekday");
+
+
+
 ALTER TABLE ONLY "public"."schedule_types"
     ADD CONSTRAINT "schedule_types_name_key" UNIQUE ("name");
 
@@ -321,6 +339,11 @@ ALTER TABLE ONLY "public"."schedule_blocks"
 
 
 
+ALTER TABLE ONLY "public"."schedule_defaults"
+    ADD CONSTRAINT "schedule_defaults_schedule_type_id_fkey" FOREIGN KEY ("schedule_type_id") REFERENCES "public"."schedule_types"("id") ON DELETE CASCADE;
+
+
+
 CREATE POLICY "Public can read active schedule types" ON "public"."schedule_types" FOR SELECT TO "authenticated", "anon" USING (("active" = true));
 
 
@@ -332,6 +355,10 @@ CREATE POLICY "Public can read calendar dates" ON "public"."calendar_dates" FOR 
 CREATE POLICY "Public can read schedule blocks" ON "public"."schedule_blocks" FOR SELECT TO "authenticated", "anon" USING ((EXISTS ( SELECT 1
    FROM "public"."schedule_types" "st"
   WHERE (("st"."id" = "schedule_blocks"."schedule_type_id") AND ("st"."active" = true)))));
+
+
+
+CREATE POLICY "Public can read schedule defaults" ON "public"."schedule_defaults" FOR SELECT TO "authenticated", "anon" USING (true);
 
 
 
@@ -360,6 +387,9 @@ ALTER TABLE "public"."push_subscriptions" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."schedule_blocks" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."schedule_defaults" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."schedule_types" ENABLE ROW LEVEL SECURITY;
@@ -557,6 +587,30 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_notification_preferences"("p_subscription_id" "uuid", "p_enabled" boolean, "p_period_end" boolean, "p_lunch_end" boolean, "p_upcoming" boolean) TO "anon";
+GRANT ALL ON FUNCTION "public"."update_notification_preferences"("p_subscription_id" "uuid", "p_enabled" boolean, "p_period_end" boolean, "p_lunch_end" boolean, "p_upcoming" boolean) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_notification_preferences"("p_subscription_id" "uuid", "p_enabled" boolean, "p_period_end" boolean, "p_lunch_end" boolean, "p_upcoming" boolean) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."upsert_push_subscription"("p_installation_id" "uuid", "p_endpoint" "text", "p_p256dh" "text", "p_auth" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."upsert_push_subscription"("p_installation_id" "uuid", "p_endpoint" "text", "p_p256dh" "text", "p_auth" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."upsert_push_subscription"("p_installation_id" "uuid", "p_endpoint" "text", "p_p256dh" "text", "p_auth" "text") TO "service_role";
+
+
+
+
+
+
+
+
+
 
 
 
@@ -602,9 +656,15 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."schedule_blocks" T
 
 
 
+GRANT ALL ON TABLE "public"."schedule_defaults" TO "anon";
+GRANT ALL ON TABLE "public"."schedule_defaults" TO "authenticated";
+GRANT ALL ON TABLE "public"."schedule_defaults" TO "service_role";
+
+
+
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."schedule_types" TO "anon";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."schedule_types" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."schedule_types" TO "service_role";
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."schedule_types" TO "service_role";
 
 
 
@@ -615,6 +675,9 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."schedule_types" TO
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
 
 
 
@@ -622,6 +685,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQ
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
 
 
 
@@ -629,9 +695,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUN
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLES TO "service_role";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
 
 
@@ -663,174 +729,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT REFERENCES
 
 
 
-drop extension if exists "pg_net";
 
-create extension if not exists "pg_net" with schema "public";
+--
+-- Dumped schema changes for auth and storage
+--
 
-drop policy "Public can read calendar dates" on "public"."calendar_dates";
-
-drop policy "Public can read schedule blocks" on "public"."schedule_blocks";
-
-drop policy "Public can read active schedule types" on "public"."schedule_types";
-
-revoke delete on table "public"."calendar_dates" from "anon";
-
-revoke insert on table "public"."calendar_dates" from "anon";
-
-revoke update on table "public"."calendar_dates" from "anon";
-
-revoke delete on table "public"."calendar_dates" from "authenticated";
-
-revoke insert on table "public"."calendar_dates" from "authenticated";
-
-revoke select on table "public"."calendar_dates" from "authenticated";
-
-revoke update on table "public"."calendar_dates" from "authenticated";
-
-revoke delete on table "public"."calendar_dates" from "service_role";
-
-revoke insert on table "public"."calendar_dates" from "service_role";
-
-revoke update on table "public"."calendar_dates" from "service_role";
-
-revoke delete on table "public"."notification_deliveries" from "anon";
-
-revoke insert on table "public"."notification_deliveries" from "anon";
-
-revoke select on table "public"."notification_deliveries" from "anon";
-
-revoke update on table "public"."notification_deliveries" from "anon";
-
-revoke delete on table "public"."notification_deliveries" from "authenticated";
-
-revoke insert on table "public"."notification_deliveries" from "authenticated";
-
-revoke select on table "public"."notification_deliveries" from "authenticated";
-
-revoke update on table "public"."notification_deliveries" from "authenticated";
-
-revoke delete on table "public"."notification_deliveries" from "service_role";
-
-revoke insert on table "public"."notification_deliveries" from "service_role";
-
-revoke select on table "public"."notification_deliveries" from "service_role";
-
-revoke update on table "public"."notification_deliveries" from "service_role";
-
-revoke delete on table "public"."notification_preferences" from "anon";
-
-revoke insert on table "public"."notification_preferences" from "anon";
-
-revoke select on table "public"."notification_preferences" from "anon";
-
-revoke update on table "public"."notification_preferences" from "anon";
-
-revoke delete on table "public"."notification_preferences" from "authenticated";
-
-revoke insert on table "public"."notification_preferences" from "authenticated";
-
-revoke select on table "public"."notification_preferences" from "authenticated";
-
-revoke update on table "public"."notification_preferences" from "authenticated";
-
-revoke delete on table "public"."notification_preferences" from "service_role";
-
-revoke insert on table "public"."notification_preferences" from "service_role";
-
-revoke select on table "public"."notification_preferences" from "service_role";
-
-revoke update on table "public"."notification_preferences" from "service_role";
-
-revoke delete on table "public"."push_subscriptions" from "anon";
-
-revoke insert on table "public"."push_subscriptions" from "anon";
-
-revoke select on table "public"."push_subscriptions" from "anon";
-
-revoke update on table "public"."push_subscriptions" from "anon";
-
-revoke delete on table "public"."push_subscriptions" from "authenticated";
-
-revoke insert on table "public"."push_subscriptions" from "authenticated";
-
-revoke select on table "public"."push_subscriptions" from "authenticated";
-
-revoke update on table "public"."push_subscriptions" from "authenticated";
-
-revoke delete on table "public"."push_subscriptions" from "service_role";
-
-revoke insert on table "public"."push_subscriptions" from "service_role";
-
-revoke select on table "public"."push_subscriptions" from "service_role";
-
-revoke update on table "public"."push_subscriptions" from "service_role";
-
-revoke delete on table "public"."schedule_blocks" from "anon";
-
-revoke insert on table "public"."schedule_blocks" from "anon";
-
-revoke update on table "public"."schedule_blocks" from "anon";
-
-revoke delete on table "public"."schedule_blocks" from "authenticated";
-
-revoke insert on table "public"."schedule_blocks" from "authenticated";
-
-revoke select on table "public"."schedule_blocks" from "authenticated";
-
-revoke update on table "public"."schedule_blocks" from "authenticated";
-
-revoke delete on table "public"."schedule_blocks" from "service_role";
-
-revoke insert on table "public"."schedule_blocks" from "service_role";
-
-revoke select on table "public"."schedule_blocks" from "service_role";
-
-revoke update on table "public"."schedule_blocks" from "service_role";
-
-revoke delete on table "public"."schedule_types" from "anon";
-
-revoke insert on table "public"."schedule_types" from "anon";
-
-revoke update on table "public"."schedule_types" from "anon";
-
-revoke delete on table "public"."schedule_types" from "authenticated";
-
-revoke insert on table "public"."schedule_types" from "authenticated";
-
-revoke select on table "public"."schedule_types" from "authenticated";
-
-revoke update on table "public"."schedule_types" from "authenticated";
-
-revoke delete on table "public"."schedule_types" from "service_role";
-
-revoke insert on table "public"."schedule_types" from "service_role";
-
-revoke update on table "public"."schedule_types" from "service_role";
-
-
-  create policy "Public can read calendar dates"
-  on "public"."calendar_dates"
-  as permissive
-  for select
-  to anon, authenticated
-using (true);
-
-
-
-  create policy "Public can read schedule blocks"
-  on "public"."schedule_blocks"
-  as permissive
-  for select
-  to anon, authenticated
-using ((EXISTS ( SELECT 1
-   FROM public.schedule_types st
-  WHERE ((st.id = schedule_blocks.schedule_type_id) AND (st.active = true)))));
-
-
-
-  create policy "Public can read active schedule types"
-  on "public"."schedule_types"
-  as permissive
-  for select
-  to anon, authenticated
-using ((active = true));
